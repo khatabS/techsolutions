@@ -4,6 +4,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
 <title>حلول تك</title>
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<script>
+// ===== فحص النسخة وتنظيف الكاش تلقائياً (لا يمس تسجيل الدخول ولا بيانات المستخدم) =====
+// عند كل تحديث غيّر رقم النسخة هنا (v4 ← v5 ...) وسيتحدّث الموقع عند الزوار تلقائياً
+const APP_VER='v4';
+async function checkAndClear(){
+  try{
+    const res=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});
+    if(!res.ok)return;
+    const m=(await res.text()).match(/APP_VER\s*=\s*'([^']+)'/);
+    if(!m||m[1]===APP_VER)return;
+    const flag='reloaded_'+m[1];
+    if(sessionStorage.getItem(flag))return;
+    sessionStorage.setItem(flag,'1');
+    if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()))}
+    if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}
+    location.replace(location.pathname+'?v='+m[1]+location.hash);
+  }catch(e){}
+}
+checkAndClear();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAndClear()});
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0b1220;--card:#131c31;--tx:#e8eefc;--mu:#9fb0d3;--ac:#4f8cff;--ac2:#22d3ee;--bd:#233152}
@@ -56,7 +79,7 @@ details summary{list-style:none}
 <nav id="nav"></nav>
 <a id="wa" target="_blank" rel="noopener" aria-label="واتساب">💬</a>
 <main id="app"></main>
-<footer>© حلول تك — جميع الحقوق محفوظة · v3</footer>
+<footer>© حلول تك — جميع الحقوق محفوظة · <span id="ver"></span></footer>
 <script>
 // ===== الإعدادات: ضع رابط Apps Script هنا =====
 const API='https://script.google.com/macros/s/AKfycbz0uXTQ9vjmOAKq_0UDq8Jx2eqX_zHKRLwaSpRYXvKioonBhKLY3PHzFHTtN6r2uZegXg/exec';
@@ -251,6 +274,7 @@ async function route(){
   m.innerHTML=v;scrollTo(0,0);
 }
 $('#wa').href='https://wa.me/'+CONTACT.whatsapp.replace(/\D/g,'');
+$('#ver').textContent=APP_VER;
 addEventListener('hashchange',route);route();
 </script>
 </body>

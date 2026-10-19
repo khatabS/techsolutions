@@ -54,7 +54,7 @@ details summary{list-style:none}
 <footer>© حلول تك — جميع الحقوق محفوظة</footer>
 <script>
 // ===== الإعدادات: ضع رابط Apps Script هنا =====
-const API='https://script.google.com/macros/s/AKfycbz0uXTQ9vjmOAKq_0UDq8Jx2eqX_zHKRLwaSpRYXvKioonBhKLY3PHzFHTtN6r2uZegXg/exec';
+const API='PASTE_APPS_SCRIPT_URL_HERE';
 
 // ===== بيانات التواصل: عدّلها ببياناتك (اترك الفارغ ليختفي) =====
 const CONTACT={
@@ -95,11 +95,11 @@ async function api(action,data={}){
 }
 function nav(){
   $('#nav').innerHTML=`<a class="brand" href="#/">⚡ حلول تك</a><div class="nv">`+
-  (user?`<a class="btn o" href="#/sections">الأقسام</a><a class="btn o" href="#/my">طلباتي</a>${user.role==='admin'?'<a class="btn o" href="#/admin">لوحة الأدمن</a>':''}<span class="mu">${esc(user.name)}</span><button class="btn" onclick="logout()">خروج</button>`
+  (user?`<a class="btn o" href="#/sections">الأقسام</a><a class="btn o" href="#/my">طلباتي</a><a class="btn o" href="#/password">🔑 كلمة المرور</a>${user.role==='admin'?'<a class="btn o" href="#/admin">لوحة الأدمن</a>':''}<span class="mu">${esc(user.name)}</span><button class="btn" onclick="logout()">خروج</button>`
   :`<a class="btn o" href="#/login">تسجيل الدخول</a><a class="btn" href="#/register">إنشاء حساب</a>`)+`</div>`;
 }
 function logout(){tok=null;user=null;localStorage.clear();location.hash='#/';route()}
-function setUser(r){tok=r.token;user=r.user;localStorage.setItem('t',tok);localStorage.setItem('u',JSON.stringify(user));location.hash='#/sections'}
+function setUser(r){tok=r.token;user=r.user;localStorage.setItem('t',tok);localStorage.setItem('u',JSON.stringify(user));location.hash=user.mustChange?'#/password':'#/sections'}
 
 function home(){return`<section class="hero"><h1>حلول تك<br><span style="font-size:.5em;font-weight:700;color:var(--mu)">كل احتياجك التقني في مكان واحد</span></h1><p>سيرة ذاتية، تدريب، دعم فني، شبكات وكاميرات، تصميم مواقع، ومنتجات متنوعة بجودة وسعر مناسب.</p>
 <a class="btn" href="#/${user?'sections':'register'}">${user?'تصفح الأقسام':'ابدأ الآن'}</a></section>
@@ -110,6 +110,18 @@ function reviews(){return REVIEWS.length?`<h2>آراء العملاء</h2><div c
 function faq(){return`<h2>الأسئلة الشائعة</h2>${FAQ.map(f=>`<details class="c" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700">${esc(f.q)}</summary><p style="margin-top:8px">${esc(f.a)}</p></details>`).join('')}`}
 async function my(){if(!user){location.hash='#/login';return''}const r=await api('myRequests');if(!r.ok)return`<div class="msg">${esc(r.msg)}</div>`;
 return`<h2>طلباتي</h2>`+(r.requests.length?`<div class="ov"><table><tr><th>التاريخ</th><th>الخدمة</th><th>الحالة</th></tr>${r.requests.map(q=>`<tr><td>${esc(q.date.slice(0,10))}</td><td>${esc(q.service)}</td><td>${esc(q.status||'جديد')}</td></tr>`).join('')}</table></div>`:'<div class="msg">لا توجد طلبات بعد</div>')}
+const PWR=[['8 أحرف على الأقل',p=>p.length>=8],['حرف إنجليزي',p=>/[A-Za-z]/.test(p)],['رقم',p=>/\d/.test(p)],['رمز مثل !@#$%',p=>/[^A-Za-z0-9]/.test(p)]];
+const pwOk=p=>PWR.every(r=>r[1](p));
+const hintHtml=v=>PWR.map(r=>`<div class="mu">${r[1](v)?'✅':'⬜'} ${r[0]}</div>`).join('');
+const pwHint=(id,v)=>{$('#'+id).innerHTML=hintHtml(v)};
+function passPage(){if(!user){location.hash='#/login';return''}
+return`<div class="box c"><h2 style="margin-top:0">تغيير كلمة المرور</h2>${user.mustChange?'<div class="msg">دخلت بكلمة مؤقتة، اختر كلمة مرور جديدة للمتابعة</div>':''}<label>كلمة المرور الحالية</label><input id="o" type="password"><label>كلمة المرور الجديدة</label><input id="w1" type="password" oninput="pwHint('ph',this.value)"><div id="ph" style="margin:-6px 0 12px">${hintHtml('')}</div><label>تأكيد كلمة المرور الجديدة</label><input id="w2" type="password"><button class="btn" style="width:100%" onclick="chp()">حفظ</button><div id="st"></div></div>`}
+async function chp(){const a=$('#w1').value,m=t=>$('#st').innerHTML=`<div class="msg">${t}</div>`;
+if(!pwOk(a))return m('كلمة المرور الجديدة لا تحقق الشروط');
+if(a!==$('#w2').value)return m('كلمتا المرور غير متطابقتين');
+const r=await api('changePass',{old:$('#o').value,pass:a});
+if(!r.ok)return m(esc(r.msg));
+user=r.user;localStorage.setItem('u',JSON.stringify(user));nav();m('تم تغيير كلمة المرور ✅');setTimeout(()=>location.hash='#/sections',1200)}
 function forgot(){return`<div class="box c"><h2 style="margin-top:0">استعادة كلمة المرور</h2><label>البريد الإلكتروني</label><input id="e" type="email"><button class="btn" style="width:100%" onclick="fg()">إرسال كلمة مرور مؤقتة</button><div id="st"></div></div>`}
 async function fg(){const r=await api('forgot',{email:$('#e').value.trim()});$('#st').innerHTML=`<div class="msg">${r.ok?'إذا كان البريد مسجلاً وصلتك كلمة مرور مؤقتة (تفقد الرسائل غير المرغوبة)':esc(r.msg)}</div>`}
 function contact(){
@@ -155,13 +167,14 @@ async function req(service){
 
 function authForm(reg){return`<div class="box c"><h2 style="margin-top:0">${reg?'إنشاء حساب':'تسجيل الدخول'}</h2>
 ${reg?'<label>الاسم</label><input id="n"><label>الجوال</label><input id="p" type="tel">':''}
-<label>البريد الإلكتروني</label><input id="e" type="email"><label>كلمة المرور</label><input id="w" type="password">
+<label>البريد الإلكتروني</label><input id="e" type="email"><label>كلمة المرور</label><input id="w" type="password"${reg?` oninput="pwHint('ph',this.value)"`:''}>${reg?`<div id="ph" style="margin:-6px 0 12px">${hintHtml('')}</div>`:''}
 <button class="btn" style="width:100%" onclick="auth(${reg})">${reg?'تسجيل':'دخول'}</button><div id="st"></div>${reg?'':'<p style="margin-top:10px"><a href="#/forgot" style="color:var(--ac)">نسيت كلمة المرور؟</a></p>'}
 <p class="mu" style="margin-top:12px">${reg?'لديك حساب؟ <a href="#/login" style="color:var(--ac)">سجّل دخولك</a>':'ليس لديك حساب؟ <a href="#/register" style="color:var(--ac)">أنشئ حساباً</a>'}</p></div>`}
 async function auth(reg){
   const d={email:$('#e').value.trim(),pass:$('#w').value};
   if(reg){d.name=$('#n').value.trim();d.phone=$('#p').value.trim()}
   if(!d.email||!d.pass||(reg&&!d.name)){$('#st').innerHTML='<div class="msg">أكمل جميع الحقول</div>';return}
+  if(reg&&!pwOk(d.pass)){$('#st').innerHTML='<div class="msg">كلمة المرور لا تحقق الشروط</div>';return}
   const r=await api(reg?'register':'login',d);
   if(r.ok)setUser(r);else $('#st').innerHTML=`<div class="msg">${esc(r.msg)}</div>`;
 }
@@ -183,7 +196,9 @@ function addP(){adm('addProduct',{name:$('#pn').value,price:$('#pp').value,desc:
 async function route(){
   nav();const h=(location.hash.slice(2)||'').split('/');let v='';
   const m=$('#app');m.innerHTML='<p class="mu" style="padding:40px 0">جارٍ التحميل…</p>';
+  if(user&&user.mustChange)h[0]='password';
   if(h[0]==='sections')v=sections();
+  else if(h[0]==='password')v=passPage();
   else if(h[0]==='s')v=await section(h[1]);
   else if(h[0]==='login')v=authForm(0);
   else if(h[0]==='register')v=authForm(1);

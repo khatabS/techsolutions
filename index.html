@@ -9,7 +9,7 @@
 <script>
 // ===== فحص النسخة وتنظيف الكاش تلقائياً (لا يمس تسجيل الدخول ولا بيانات المستخدم) =====
 // عند كل تحديث غيّر رقم النسخة هنا (v4 ← v5 ...) وسيتحدّث الموقع عند الزوار تلقائياً
-const APP_VER='v8';
+const APP_VER='v9';
 async function checkAndClear(){
   try{
     const res=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});
@@ -156,6 +156,16 @@ function calc(key,def,item){
   const off=o.off>0?o.off:((PR&&PR.gl&&PR.gl.off)||0);
   return{pre,suf,base,off,fin:Math.round(base*(1-off/100)*100)/100};
 }
+const dep=()=>(PR&&PR.dep!=null?PR.dep:30);
+const amtOf=(key,def,item)=>{const c=calc(key,def,item);return c.base==null?null:c.fin};
+function cp(t,b){const ok=()=>{b.textContent='تم ✓';setTimeout(()=>b.textContent='نسخ',1500)};
+  if(navigator.clipboard)navigator.clipboard.writeText(t).then(ok,ok);else{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(e){}a.remove();ok()}}
+async function payBox(num,due,full,isDep){
+  const r=await api('getPay'),L=(r.ok&&r.pay)||[];
+  const wa='https://wa.me/'+CONTACT.whatsapp.replace(/\D/g,'')+'?text='+encodeURIComponent(`مرحباً، رقم طلبي ${num} وحوّلت ${due} ر.ع. هذا الإيصال:`);
+  const rows=L.map(m=>`<div class="c" style="margin:8px 0"><b>${m.type==='phone'?'📱':'🏦'} ${esc(m.name)}</b><div class="mu">${esc(m.holder)}</div><div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><b style="direction:ltr;unicode-bidi:plaintext;font-size:18px;word-break:break-all">${esc(m.num)}</b><button class="btn o" style="padding:5px 12px" data-v="${esc(m.num)}" onclick="cp(this.dataset.v,this)">نسخ</button></div>${m.note?`<div class="mu">${esc(m.note)}</div>`:''}</div>`).join('');
+  $('#st').innerHTML=`<div class="msg"><h3>✅ تم استلام طلبك رقم ${num}</h3><p>المبلغ المطلوب تحويله الآن: <b class="price">${due} ر.ع</b>${isDep?` (عربون ${dep()}% من ${full} ر.ع، والباقي بعد المعاينة أو الاتفاق)`:''}</p>${rows||'<p>تواصل معنا واتساب لمعرفة طرق الدفع.</p>'}<p class="mu">بعد التحويل أرسل صورة الإيصال مع رقم الطلب. لا نبدأ التنفيذ إلا بعد تأكيد وصول المبلغ.</p><a class="btn" href="${wa}" target="_blank" rel="noopener">💬 إرسال الإيصال واتساب</a></div>`;
+  $('#st').scrollIntoView({behavior:'smooth'})}
 const hid=k=>!!(PR&&PR.hid&&PR.hid[k]);
 const fv=(p,A)=>{const d=Math.min(1,A.length-1);if(!hid(p+':'+d))return d;const i=A.findIndex((_,j)=>!hid(p+':'+j));return i<0?d:i};
 const HBLK={cv:['اختر باقتك','كيف نشتغل','لماذا نحن','نماذج من أعمالنا','اطلب سيرتك الآن','أسئلة شائعة'],net:['خدماتنا','باقات الكاميرات','لماذا نحن','تركيباتنا','أجهزة جاهزة للشراء','مناطق التغطية','اطلب الخدمة','أسئلة شائعة'],web:['أعمالنا','أنواع المواقع','الباقات','ما يشمله كل موقع','الاستضافة والدومين','مراحل العمل','الدعم بعد التسليم','اطلب موقعك','أسئلة شائعة']};
@@ -189,7 +199,7 @@ function gallery(){return GALLERY.length?`<h2>أعمالنا</h2><div class="g">
 function reviews(){return REVIEWS.length?`<h2>آراء العملاء</h2><div class="g">${REVIEWS.map(r=>`<div class="c"><p>“${esc(r.t)}”</p><h3 style="font-size:16px">— ${esc(r.n)}</h3></div>`).join('')}</div>`:''}
 function faq(){return`<h2>الأسئلة الشائعة</h2>${FAQ.map(f=>`<details class="c" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700">${esc(f.q)}</summary><p style="margin-top:8px">${esc(f.a)}</p></details>`).join('')}`}
 async function my(){if(!user){location.hash='#/login';return''}const r=await api('myRequests');if(!r.ok)return`<div class="msg">${esc(r.msg)}</div>`;
-return`<h2>طلباتي</h2>`+(r.requests.length?`<div class="ov"><table><tr><th>التاريخ</th><th>الخدمة</th><th>الحالة</th></tr>${r.requests.map(q=>`<tr><td>${esc(q.date.slice(0,10))}</td><td>${esc(q.service)}</td><td>${esc(q.status||'جديد')}</td></tr>`).join('')}</table></div>`:'<div class="msg">لا توجد طلبات بعد</div>')}
+return`<h2>طلباتي</h2>`+(r.requests.length?`<div class="ov"><table><tr><th>التاريخ</th><th>الخدمة</th><th>الحالة</th></tr>${r.requests.map(q=>`<tr><td>${esc(q.date.slice(0,10))}<br><span class="mu">#${q.num||''}</span></td><td>${esc(q.service)}${q.due?`<br><span class="mu">المطلوب: ${q.due} من ${q.amt} ر.ع</span>`:''}</td><td>${esc(q.status||'جديد')}</td></tr>`).join('')}</table></div>`:'<div class="msg">لا توجد طلبات بعد</div>')}
 const PWR=[['8 أحرف على الأقل',p=>p.length>=8],['حرف إنجليزي',p=>/[A-Za-z]/.test(p)],['رقم',p=>/\d/.test(p)],['رمز مثل !@#$%',p=>/[^A-Za-z0-9]/.test(p)]];
 const pwOk=p=>PWR.every(r=>r[1](p));
 const hintHtml=v=>PWR.map(r=>`<div class="mu">${r[1](v)?'✅':'⬜'} ${r[0]}</div>`).join('');
@@ -234,7 +244,7 @@ async function section(id){
   let h=`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>`;
   if(id==='shop'){
     const r=await api('getProducts');
-    h+=r.ok&&r.products.length?`<div class="g" style="margin-top:16px">${r.products.map(p=>`<div class="c">${p.img?`<img src="${esc(p.img)}" alt="" style="width:100%;height:170px;object-fit:cover;border-radius:10px;margin-bottom:8px">`:''}<h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p>${pr(null,p.price,22,{off:p.off})}<button class="btn" onclick="req('منتج: ${esc(p.name).replace(/'/g,'')}')">اطلب الآن</button></div>`).join('')}</div>`
+    h+=r.ok&&r.products.length?`<div class="g" style="margin-top:16px">${r.products.map(p=>`<div class="c">${p.img?`<img src="${esc(p.img)}" alt="" style="width:100%;height:170px;object-fit:cover;border-radius:10px;margin-bottom:8px">`:''}<h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p>${pr(null,p.price,22,{off:p.off})}<button class="btn" onclick="req('منتج: ${esc(p.name).replace(/'/g,'')}',{full:${amtOf(null,p.price,{off:p.off})}})">اطلب الآن</button></div>`).join('')}</div>`
       :`<div class="msg">${r.ok?'لا توجد منتجات حالياً':esc(r.msg)}</div>`;
     if(!user)h+=`<div class="c" style="margin-top:16px"><h3>بياناتك للطلب</h3>${guestFields}</div>`;
   }else{
@@ -242,14 +252,17 @@ async function section(id){
   }
   return h+'<div id="st"></div>';
 }
-async function req(service){
+async function req(service,pay){
   const n=$('#nt')?$('#nt').value:'',show=t=>($('#st')||document.body.appendChild(Object.assign(document.createElement('div'),{id:'st'}))).innerHTML=`<div class="msg">${t}</div>`;
+  const full=pay&&pay.full>0?pay.full:0,due=full?(pay.dep?Math.round(full*dep()*10)/1000:full):0,x={service,note:n,amt:full,due};
   let r;
-  if(user)r=await api('sendRequest',{service,note:n});
+  if(user)r=await api('sendRequest',x);
   else{const nm=($('#gn')||{value:''}).value.trim(),ph=($('#gp')||{value:''}).value.trim();
     if(!nm||!/^\+?[\d\s]{7,15}$/.test(ph))return show('أدخل اسمك ورقم جوال صحيح في الخانات');
-    r=await api('guestRequest',{service,note:n,name:nm,phone:ph,hp:($('#hp')||{value:''}).value})}
-  show(r.ok?'تم إرسال طلبك بنجاح ✅ وسنتواصل معك قريباً':esc(r.msg));
+    r=await api('guestRequest',{...x,name:nm,phone:ph,hp:($('#hp')||{value:''}).value})}
+  if(!r.ok)return show(esc(r.msg));
+  if(r.due>0){show('');return payBox(r.num,r.due,full,!!pay.dep)}
+  show('تم إرسال طلبك بنجاح ✅'+(r.num?' رقم الطلب: '+r.num:'')+' وسنتواصل معك قريباً');
 }
 
 let webPkg=1;
@@ -286,7 +299,7 @@ function webSel(i){webPkg=i;document.querySelectorAll('.wpk').forEach(e=>{const 
 function webSend(){const v=i=>$('#'+i).value.trim(),k=WEB_PKGS[webPkg];
   if(!v('wact')){$('#st').innerHTML='<div class="msg">اكتب نشاطك أو مجالك</div>';return}
   $('#nt').value=`النوع: ${v('wt')}\nالباقة: ${k.n} (${ptxt('web:'+webPkg,k.p)})\nالنشاط: ${v('wact')}\nالصفحات: ${v('wp')}\nشعار: ${v('wl')} | محتوى: ${v('wc')}\nأمثلة: ${v('we')}\nالميزانية: ${v('wb')}\nالموعد: ${v('wd')}\nملاحظات: ${v('wn')}`;
-  req('تصميم موقع - '+v('wt'))}
+  req('تصميم موقع - '+v('wt'),{full:amtOf('web:'+webPkg,k.p),dep:1})}
 let netPkg=1;
 function netPage(s){
   netPkg=fv('net',NET_PKGS);
@@ -321,7 +334,7 @@ function netInspect(){$('#nsv').value='معاينة مجانية';netGo()}
 function netSend(){const v=i=>$('#'+i).value.trim(),sv=v('nsv'),k=NET_PKGS[netPkg];
   if(!v('nr')){$('#st').innerHTML='<div class="msg">اكتب المنطقة</div>';return}
   $('#nt').value=`الخدمة: ${sv}${sv.includes('كاميرات')?'\nالباقة: '+k.n+' ('+ptxt('net:'+netPkg,k.p)+')':''}\nالمكان: ${v('npl')} - ${v('nin')}\nالعدد/المساحة: ${v('nc')}\nالمنطقة: ${v('nr')}\nالكيبلات: ${v('nca')}\nالزيارة: ${v('nt2')}\nملاحظات: ${v('nn')}`;
-  req('شبكات وكاميرات - '+sv)}
+  req('شبكات وكاميرات - '+sv,sv.includes('كاميرات')?{full:amtOf('net:'+netPkg,k.p),dep:1}:null)}
 let cvPkg=1;
 function cvPage(s){
   cvPkg=fv('cv',CV_PKGS);
@@ -345,7 +358,7 @@ function cvSel(i){cvPkg=i;document.querySelectorAll('.pk').forEach(e=>{const on=
 function cvSend(){const v=i=>$('#'+i).value.trim(),k=CV_PKGS[cvPkg];
   if(!v('cj')){$('#st').innerHTML='<div class="msg">اكتب الوظيفة المستهدفة</div>';return}
   $('#nt').value=`الباقة: ${k.n} (${ptxt('cv:'+cvPkg,k.p)})\nالوظيفة: ${v('cj')}\nالخبرات: ${v('ce')}\nالمؤهلات: ${v('cd')}\nالمهارات: ${v('cs')}\nاللغة: ${v('cl')}\nرابط: ${v('cu')}`;
-  req('سيرة ذاتية - '+k.n)}
+  req('سيرة ذاتية - '+k.n,{full:amtOf('cv:'+cvPkg,k.p)})}
 function authForm(reg){return`<div class="box c"><h2 style="margin-top:0">${reg?'إنشاء حساب':'تسجيل الدخول'}</h2>
 ${reg?'<label>الاسم</label><input id="n"><label>الجوال</label><input id="p" type="tel">':''}
 <label>البريد الإلكتروني</label><input id="e" type="email"><label>كلمة المرور</label><input id="w" type="password"${reg?` oninput="pwHint('ph',this.value)"`:''}>${reg?`<div id="ph" style="margin:-6px 0 12px">${hintHtml('')}</div>`:''}
@@ -365,9 +378,9 @@ async function admin(){
   if(!user||user.role!=='admin'){location.hash='#/';return''}
   await loadPrices();const r=await api('adminData');if(!r.ok)return`<div class="msg">${esc(r.msg)}</div>`;
   const T=(k,l)=>`<button class="btn ${tab===k?'':'o'}" onclick="tab='${k}';route()">${l}</button>`;
-  let h=`<h2>لوحة الأدمن</h2><div class="tabs">${T('users','المستخدمون ('+r.users.length+')')}${T('reqs','الطلبات ('+r.requests.length+')')}${T('prods','المنتجات ('+r.products.length+')')}${T('prices','الأسعار والخصومات')}${T('hide','الإخفاء والإظهار')}</div><div class="ov">`;
+  let h=`<h2>لوحة الأدمن</h2><div class="tabs">${T('users','المستخدمون ('+r.users.length+')')}${T('reqs','الطلبات ('+r.requests.length+')')}${T('prods','المنتجات ('+r.products.length+')')}${T('prices','الأسعار والخصومات')}${T('hide','الإخفاء والإظهار')}${T('pay','طرق الدفع')}</div><div class="ov">`;
   if(tab==='users')h+=`<table><tr><th>الاسم</th><th>البريد</th><th>الجوال</th><th>الصلاحية</th><th></th></tr>${r.users.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.phone)}</td><td>${u.role==='admin'?'أدمن':'عميل'}</td><td>${u.id===user.id?'':`<button class="btn o" style="padding:5px 10px" onclick="adm('setRole',{id:'${u.id}',role:'${u.role==='admin'?'user':'admin'}'})">${u.role==='admin'?'إلغاء أدمن':'ترقية لأدمن'}</button> <button class="btn d" onclick="adm('deleteUser',{id:'${u.id}'},1)">حذف</button>`}</td></tr>`).join('')}</table>`;
-  if(tab==='reqs')h+=`<table><tr><th>التاريخ</th><th>العميل</th><th>الخدمة</th><th>التفاصيل</th><th>الحالة</th><th></th></tr>${r.requests.map(q=>`<tr><td>${esc(q.date.slice(0,10))}</td><td>${esc(q.name)}${q.guest?' <span class="mu">(ضيف)</span>':''}<br><span class="mu">${esc(q.phone)}</span></td><td>${esc(q.service)}</td><td>${esc(q.note)}</td><td><select onchange="adm('setStatus',{id:'${q.id}',status:this.value})">${['جديد','قيد التنفيذ','مكتمل'].map(x=>`<option${(q.status||'جديد')===x?' selected':''}>${x}</option>`).join('')}</select></td><td><button class="btn d" onclick="adm('deleteRequest',{id:'${q.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
+  if(tab==='reqs')h+=`<table><tr><th>التاريخ</th><th>العميل</th><th>الخدمة</th><th>التفاصيل</th><th>الحالة</th><th></th></tr>${r.requests.map(q=>`<tr><td>${esc(q.date.slice(0,10))}<br><span class="mu">#${q.num||''}</span></td><td>${esc(q.name)}${q.guest?' <span class="mu">(ضيف)</span>':''}<br><span class="mu">${esc(q.phone)}</span></td><td>${esc(q.service)}${q.due?`<br><span class="mu">المطلوب: ${q.due} من ${q.amt} ر.ع</span>`:''}</td><td>${esc(q.note)}</td><td><select onchange="adm('setStatus',{id:'${q.id}',status:this.value})">${['جديد','بانتظار الدفع','مدفوع','قيد التنفيذ','مكتمل'].map(x=>`<option${(q.status||'جديد')===x?' selected':''}>${x}</option>`).join('')}</select></td><td><button class="btn d" onclick="adm('deleteRequest',{id:'${q.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
   if(tab==='prods')h+=`<div class="c" style="margin-bottom:16px"><h3>إضافة منتج</h3><input id="pn" placeholder="اسم المنتج"><input id="pp" placeholder="السعر"><input id="pd" placeholder="الوصف"><input id="pi" placeholder="رابط صورة المنتج (اختياري)"><button class="btn" onclick="addP()">إضافة</button></div><table><tr><th>المنتج</th><th>السعر</th><th>خصم %</th><th></th></tr>${r.products.map(p=>`<tr><td>${esc(p.name)}<br><span class="mu">${esc(p.desc)}</span></td><td><input class="pn" value="${esc(p.price)}" style="width:110px"></td><td><input class="po" type="number" min="0" max="90" value="${p.off||0}" style="width:70px"></td><td><button class="btn" onclick="saveProd('${p.id}',this)">حفظ</button> <button class="btn o" style="padding:9px 12px" onclick="tg('prod:${p.id}')">${hid('prod:'+p.id)?'إظهار':'إخفاء'}</button> <button class="btn d" onclick="adm('deleteProduct',{id:'${p.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
   if(tab==='prices'){const gl=PR.gl||{off:0,label:''};
     const rows=[['السيرة الذاتية','cv',CV_PKGS],['الشبكات والكاميرات','net',NET_PKGS],['تصميم المواقع','web',WEB_PKGS]].map(([sec,k,A])=>A.map((x,i)=>{const key=k+':'+i,c=calc(key,x.p),o=(PR.prices||{})[key]||{};
@@ -378,6 +391,9 @@ async function admin(){
     const pkgs=[['السيرة','cv',CV_PKGS],['الكاميرات','net',NET_PKGS],['المواقع','web',WEB_PKGS]].map(([n,k,A])=>A.map((x,i)=>row(n+': '+x.n,k+':'+i)).join('')).join('');
     const blks=Object.entries(HBLK).map(([k,A])=>A.map(t=>row(S.find(x=>x.id===k).t+': '+t,'blk:'+k+':'+t)).join('')).join('');
     h+=`<h3>الأقسام</h3><table>${secs}</table><h3 style="margin-top:20px">الباقات</h3><table>${pkgs}</table><h3 style="margin-top:20px">أجزاء الصفحات</h3><table>${blks}</table><p class="mu" style="margin-top:8px">المخفي لا يراه العملاء. المنتجات تخفيها من تبويب المنتجات.</p>`}
+  if(tab==='pay'){h+=`<div class="c" style="margin-bottom:16px"><h3>إضافة طريقة دفع</h3><label>النوع</label><select id="yt" style="width:100%;margin:6px 0 12px"><option value="bank">تحويل بنكي</option><option value="phone">تحويل بالهاتف</option></select><input id="yn" placeholder="اسم البنك أو الخدمة"><input id="yh" placeholder="اسم صاحب الحساب"><input id="yu" placeholder="رقم الحساب أو الآيبان أو رقم الهاتف"><input id="yo" placeholder="ملاحظة (اختياري)"><button class="btn" onclick="addPay()">إضافة</button></div>
+<div class="c" style="margin-bottom:16px"><h3>نسبة العربون (الكاميرات والمواقع)</h3><input id="dp" type="number" min="0" max="100" value="${dep()}"><button class="btn" onclick="adm('setDep',{dep:parseFloat($('#dp').value)})">حفظ</button></div>
+<table>${(r.pay||[]).map(m=>`<tr><td>${m.type==='phone'?'📱':'🏦'} ${esc(m.name)}<br><span class="mu">${esc(m.holder)}</span></td><td style="direction:ltr">${esc(m.num)}</td><td><button class="btn o" style="padding:7px 12px" onclick="tg('pay:${m.id}')">${hid('pay:'+m.id)?'إظهار':'إخفاء'}</button> <button class="btn d" onclick="adm('deletePay',{id:'${m.id}'},1)">حذف</button></td></tr>`).join('')}</table>`}
   return h+'</div>';
 }
 const rowV=b=>{const t=b.closest('tr');return[t.querySelector('.pn').value,parseFloat(t.querySelector('.po').value)||0]};
@@ -385,6 +401,7 @@ async function savePrice(key,b){const[n,off]=rowV(b);await adm('setPrice',{key,n
 async function resetPrice(key){await adm('setPrice',{key,reset:true},1);PR=null;route()}
 async function saveGlobal(){await adm('setGlobal',{off:parseFloat($('#go').value)||0,label:$('#gl').value});PR=null;route()}
 async function saveProd(id,b){const[price,off]=rowV(b);await adm('updateProduct',{id,price,off})}
+function addPay(){adm('addPay',{type:$('#yt').value,name:$('#yn').value,holder:$('#yh').value,num:$('#yu').value,note:$('#yo').value})}
 async function adm(a,d,c){if(c&&!confirm('متأكد؟'))return;const r=await api(a,d);if(!r.ok)alert(r.msg);PR=null;route()}
 function addP(){adm('addProduct',{name:$('#pn').value,price:$('#pp').value,desc:$('#pd').value,img:$('#pi').value})}
 

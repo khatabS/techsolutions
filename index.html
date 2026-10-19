@@ -37,14 +37,32 @@ td,th{padding:8px;border-bottom:1px solid var(--bd);text-align:right}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}
 .ov{overflow-x:auto}
 .price{color:var(--ac2);font-weight:800}
+.ct{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.ct a,.ct div{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 16px}
+.ct a:hover{border-color:var(--ac)}
+.ct .i{font-size:26px}.ct small{display:block;color:var(--mu);font-size:13px}.ct b{direction:ltr;unicode-bidi:plaintext}
+footer{text-align:center;color:var(--mu);font-size:14px;padding:24px 5%;border-top:1px solid var(--bd)}
 </style>
 </head>
 <body>
 <nav id="nav"></nav>
 <main id="app"></main>
+<footer>© حلول تك — جميع الحقوق محفوظة</footer>
 <script>
 // ===== الإعدادات: ضع رابط Apps Script هنا =====
-const API='https://script.google.com/macros/s/AKfycbz0uXTQ9vjmOAKq_0UDq8Jx2eqX_zHKRLwaSpRYXvKioonBhKLY3PHzFHTtN6r2uZegXg/exec';
+const API='PASTE_APPS_SCRIPT_URL_HERE';
+
+// ===== بيانات التواصل: عدّلها ببياناتك (اترك الفارغ ليختفي) =====
+const CONTACT={
+  phone:'+968 9559 9161',
+  whatsapp:'+96895599161',
+  email:'k2.7aaa@hotmail.com',
+  address:'',
+  hours:'على مدار الساعة (24 ساعة)',
+  instagram:'',
+  x:'',
+  snapchat:''
+};
 
 const S=[
 {id:'cv',i:'📄',t:'إنشاء السيرة الذاتية',d:'سيرة ذاتية احترافية تبرزك أمام الشركات.',l:['تصميم عصري ومرتب','عربي وإنجليزي','تعديل وتحديث مستمر']},
@@ -72,7 +90,25 @@ function setUser(r){tok=r.token;user=r.user;localStorage.setItem('t',tok);localS
 
 function home(){return`<section class="hero"><h1>حلول تك<br><span style="font-size:.5em;font-weight:700;color:var(--mu)">كل احتياجك التقني في مكان واحد</span></h1><p>سيرة ذاتية، تدريب، دعم فني، شبكات وكاميرات، تصميم مواقع، ومنتجات متنوعة بجودة وسعر مناسب.</p>
 <a class="btn" href="#/${user?'sections':'register'}">${user?'تصفح الأقسام':'ابدأ الآن'}</a></section>
-<h2>خدماتنا</h2><div class="g">${S.map(s=>`<div class="c"><div class="i">${s.i}</div><h3>${s.t}</h3><p>${s.d}</p></div>`).join('')}</div>`}
+<h2>خدماتنا</h2><div class="g">${S.map(s=>`<div class="c"><div class="i">${s.i}</div><h3>${s.t}</h3><p>${s.d}</p></div>`).join('')}</div>${contact()}`}
+
+function contact(){
+  const C=CONTACT,d=v=>String(v).replace(/\D/g,'');
+  const it=[
+    C.phone&&['📞','اتصل بنا',C.phone,'tel:'+d(C.phone)],
+    C.whatsapp&&['💬','واتساب',C.whatsapp,'https://wa.me/'+d(C.whatsapp)],
+    C.email&&['✉️','البريد الإلكتروني',C.email,'mailto:'+C.email],
+    C.address&&['📍','العنوان',C.address,''],
+    C.hours&&['🕒','أوقات العمل',C.hours,''],
+    C.instagram&&['📷','انستقرام','@'+C.instagram.replace('@',''),'https://instagram.com/'+C.instagram.replace('@','')],
+    C.x&&['𝕏','منصة X','@'+C.x.replace('@',''),'https://x.com/'+C.x.replace('@','')],
+    C.snapchat&&['👻','سناب شات',C.snapchat,'https://snapchat.com/add/'+C.snapchat]
+  ].filter(Boolean);
+  if(!it.length)return'';
+  return`<h2>تواصل معنا</h2><div class="ct">${it.map(([i,l,v,h])=>{
+    const b=`<span class="i">${i}</span><span><small>${l}</small><b>${esc(v)}</b></span>`;
+    return h?`<a href="${esc(h)}" target="_blank" rel="noopener">${b}</a>`:`<div>${b}</div>`}).join('')}</div>`;
+}
 
 function sections(){
   if(!user){location.hash='#/login';return''}

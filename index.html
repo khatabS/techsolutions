@@ -45,6 +45,8 @@ footer{text-align:center;color:var(--mu);font-size:14px;padding:24px 5%;border-t
 select{font:inherit;padding:6px;border-radius:8px;background:#0d1527;color:var(--tx);border:1px solid var(--bd)}
 details summary{list-style:none}
 #wa{position:fixed;left:18px;bottom:18px;z-index:9;width:56px;height:56px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.pk.sel{border-color:var(--ac2);box-shadow:0 0 0 2px var(--ac2)}
+.st4{counter-reset:n}.st4 .c::before{counter-increment:n;content:counter(n);display:inline-flex;width:32px;height:32px;border-radius:50%;background:var(--ac);color:#06101f;font-weight:800;align-items:center;justify-content:center;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -68,6 +70,14 @@ const CONTACT={
   snapchat:''
 };
 // معرض الأعمال وآراء العملاء: أضف عناصر وتظهر تلقائياً (الفارغ يختفي)
+// ===== قسم السيرة الذاتية: عدّل الباقات والأسعار هنا =====
+const CV_DAYS='خلال 24 إلى 48 ساعة';
+const CV_PKGS=[
+ {n:'أساسية',p:'5 ر.ع',l:['سيرة ذاتية بصفحة واحدة','لغة واحدة (عربي أو إنجليزي)','تعديل واحد مجاني']},
+ {n:'احترافية',p:'10 ر.ع',star:1,l:['حتى صفحتين بتصميم مميز','عربي وإنجليزي','3 تعديلات مجانية','متوافقة مع أنظمة ATS']},
+ {n:'شاملة',p:'18 ر.ع',l:['كل مميزات الاحترافية','خطاب تقديم (Cover Letter)','تحسين حساب لينكدإن','تعديلات مفتوحة لمدة شهر']}
+];
+const CV_SAMPLES=[ /* {before:'رابط صورة قبل',after:'رابط صورة بعد',t:'وصف'} */ ];
 const GALLERY=[ /* {img:'رابط الصورة',t:'وصف العمل'} */ ];
 const REVIEWS=[ /* {n:'اسم العميل',t:'نص الرأي'} */ ];
 const FAQ=[
@@ -148,6 +158,7 @@ function sections(){
 
 async function section(id){
   const s=S.find(x=>x.id===id);if(!s)return'<p>القسم غير موجود</p>';
+  if(id==='cv')return cvPage(s);
   let h=`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>`;
   if(id==='shop'){
     const r=await api('getProducts');
@@ -169,6 +180,30 @@ async function req(service){
   show(r.ok?'تم إرسال طلبك بنجاح ✅ وسنتواصل معك قريباً':esc(r.msg));
 }
 
+let cvPkg=1;
+function cvPage(s){
+  cvPkg=Math.min(1,CV_PKGS.length-1);
+  const pk=CV_PKGS.map((k,i)=>`<div class="c pk${i===cvPkg?' sel':''}"><h3>${esc(k.n)}${k.star?' ⭐':''}</h3><p class="price" style="font-size:26px">${esc(k.p)}</p><ul class="l">${k.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="btn${i===cvPkg?'':' o'}" onclick="cvSel(${i})">اختر هذه الباقة</button></div>`).join('');
+  const steps=['أرسل بياناتك عبر النموذج','نجهّز لك المسودة الأولى','تراجعها وتطلب التعديلات','تستلم الملف النهائي PDF وWord'].map((t,i)=>`<div class="c"><h3 style="font-size:16px">${t}</h3></div>`).join('');
+  const feats=['🤖 متوافقة مع أنظمة فرز الشركات (ATS)','✏️ تعديلات مجانية حسب الباقة','🔒 بياناتك سرية وتُستخدم لإعداد سيرتك فقط','⏱️ التسليم '+CV_DAYS].map(t=>`<div class="c">${t}</div>`).join('');
+  const smp=CV_SAMPLES.length?`<h2>نماذج من أعمالنا</h2><div class="g">${CV_SAMPLES.map(x=>`<div class="c"><div style="display:flex;gap:8px"><div style="flex:1"><small class="mu">قبل</small><img src="${esc(x.before)}" alt="" style="width:100%;border-radius:8px"></div><div style="flex:1"><small class="mu">بعد</small><img src="${esc(x.after)}" alt="" style="width:100%;border-radius:8px"></div></div><p style="margin-top:8px">${esc(x.t)}</p></div>`).join('')}</div>`:'';
+  const q=[['ما الملفات التي أستلمها؟','ملف PDF جاهز للإرسال، وملف Word قابل للتعديل.'],['كم يستغرق التسليم؟','المسودة الأولى '+CV_DAYS+'.'],['هل بياناتي سرية؟','نعم، تُستخدم لإعداد سيرتك فقط ولا تُشارَك.'],['أحتاج تعديلاً بعد الاستلام؟','التعديلات المجانية حسب باقتك، وبعدها بسعر رمزي.'],['لا أعرف ماذا أكتب في الخبرات؟','اكتب ما تتذكره ونكمل معك عبر الواتساب.']].map(([a,b])=>`<details class="c" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700">${a}</summary><p style="margin-top:8px">${b}</p></details>`).join('');
+  return`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>
+<h2>اختر باقتك</h2><div class="g">${pk}</div>
+<h2>كيف نشتغل</h2><div class="g st4">${steps}</div>
+<h2>لماذا نحن</h2><div class="g">${feats}</div>${smp}
+<h2>اطلب سيرتك الآن</h2><div class="c" id="cvf"><p class="mu">الباقة المختارة: <b id="cvp">${esc(CV_PKGS[cvPkg].n)}</b></p>${user?'':guestFields}
+<label>الوظيفة المستهدفة *</label><input id="cj" maxlength="60"><label>الخبرات العملية</label><textarea id="ce" rows="3" maxlength="250"></textarea>
+<label>المؤهلات الدراسية</label><textarea id="cd" rows="2" maxlength="120"></textarea><label>المهارات</label><textarea id="cs" rows="2" maxlength="150"></textarea>
+<label>لغة السيرة</label><select id="cl" style="width:100%;margin:6px 0 12px"><option>عربي</option><option>إنجليزي</option><option>عربي وإنجليزي</option></select>
+<label>رابط سيرتك الحالية (إن وجدت)</label><input id="cu" maxlength="80"><textarea id="nt" style="display:none"></textarea>
+<button class="btn" onclick="cvSend()">إرسال الطلب</button><div id="st"></div></div>
+<h2>أسئلة شائعة</h2>${q}`}
+function cvSel(i){cvPkg=i;document.querySelectorAll('.pk').forEach((e,j)=>{e.classList.toggle('sel',j===i);e.querySelector('button').classList.toggle('o',j!==i)});$('#cvp').textContent=CV_PKGS[i].n;$('#cvf').scrollIntoView({behavior:'smooth'})}
+function cvSend(){const v=i=>$('#'+i).value.trim(),k=CV_PKGS[cvPkg];
+  if(!v('cj')){$('#st').innerHTML='<div class="msg">اكتب الوظيفة المستهدفة</div>';return}
+  $('#nt').value=`الباقة: ${k.n} (${k.p})\nالوظيفة: ${v('cj')}\nالخبرات: ${v('ce')}\nالمؤهلات: ${v('cd')}\nالمهارات: ${v('cs')}\nاللغة: ${v('cl')}\nرابط: ${v('cu')}`;
+  req('سيرة ذاتية - '+k.n)}
 function authForm(reg){return`<div class="box c"><h2 style="margin-top:0">${reg?'إنشاء حساب':'تسجيل الدخول'}</h2>
 ${reg?'<label>الاسم</label><input id="n"><label>الجوال</label><input id="p" type="tel">':''}
 <label>البريد الإلكتروني</label><input id="e" type="email"><label>كلمة المرور</label><input id="w" type="password"${reg?` oninput="pwHint('ph',this.value)"`:''}>${reg?`<div id="ph" style="margin:-6px 0 12px">${hintHtml('')}</div>`:''}

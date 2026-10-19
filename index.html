@@ -9,7 +9,7 @@
 <script>
 // ===== فحص النسخة وتنظيف الكاش تلقائياً (لا يمس تسجيل الدخول ولا بيانات المستخدم) =====
 // عند كل تحديث غيّر رقم النسخة هنا (v4 ← v5 ...) وسيتحدّث الموقع عند الزوار تلقائياً
-const APP_VER='v7';
+const APP_VER='v8';
 async function checkAndClear(){
   try{
     const res=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});
@@ -147,7 +147,7 @@ const S=[
 ];
 const guestFields=`<label>الاسم</label><input id="gn"><label>رقم الجوال</label><input id="gp" type="tel"><input id="hp" tabindex="-1" autocomplete="off" style="position:absolute;width:0;height:0;opacity:0;border:0;padding:0;margin:0;pointer-events:none">`;
 let PR=null;
-async function loadPrices(){const r=await api('getPrices');PR=r.ok?r:{prices:{},gl:{off:0,label:''}}}
+async function loadPrices(){const r=await api('getPrices');PR=r.ok?r:{prices:{},gl:{off:0,label:''},hid:{}}}
 function calc(key,def,item){
   def=String(def);const m=def.match(/[\d.]+/);if(!m)return{base:null};
   const pre=def.slice(0,m.index),suf=def.slice(m.index+m[0].length).trim()||'ر.ع';
@@ -156,6 +156,11 @@ function calc(key,def,item){
   const off=o.off>0?o.off:((PR&&PR.gl&&PR.gl.off)||0);
   return{pre,suf,base,off,fin:Math.round(base*(1-off/100)*100)/100};
 }
+const hid=k=>!!(PR&&PR.hid&&PR.hid[k]);
+const fv=(p,A)=>{const d=Math.min(1,A.length-1);if(!hid(p+':'+d))return d;const i=A.findIndex((_,j)=>!hid(p+':'+j));return i<0?d:i};
+const HBLK={cv:['اختر باقتك','كيف نشتغل','لماذا نحن','نماذج من أعمالنا','اطلب سيرتك الآن','أسئلة شائعة'],net:['خدماتنا','باقات الكاميرات','لماذا نحن','تركيباتنا','أجهزة جاهزة للشراء','مناطق التغطية','اطلب الخدمة','أسئلة شائعة'],web:['أعمالنا','أنواع المواقع','الباقات','ما يشمله كل موقع','الاستضافة والدومين','مراحل العمل','الدعم بعد التسليم','اطلب موقعك','أسئلة شائعة']};
+function applyHide(sec){let off=false;[...$('#app').children].forEach(el=>{if(el.tagName==='H2')off=hid('blk:'+sec+':'+el.textContent.trim());if(off)el.remove()})}
+async function tg(k){await adm('setHidden',{key:k,hidden:!hid(k)})}
 function ptxt(key,def,item){const c=calc(key,def,item);return c.base==null?def:c.pre+c.fin+' '+c.suf}
 function pr(key,def,fs,item){const c=calc(key,def,item);if(c.base==null)return`<p class="price">${esc(def)}</p>`;
   return`<p class="price" style="font-size:${fs||24}px">${c.off>0?`<s class="mu" style="font-size:.6em">${esc(c.pre)}${c.base} ${esc(c.suf)}</s> `:''}${esc(c.pre)}${c.fin} ${esc(c.suf)}${c.off>0?` <span class="dsc">خصم ${c.off}%</span>`:''}</p>`}
@@ -178,7 +183,7 @@ function setUser(r){tok=r.token;user=r.user;localStorage.setItem('t',tok);localS
 
 function home(){return`<section class="hero"><h1>حلول تك<br><span style="font-size:.5em;font-weight:700;color:var(--mu)">كل احتياجك التقني في مكان واحد</span></h1><p>سيرة ذاتية، تدريب، دعم فني، شبكات وكاميرات، تصميم مواقع، ومنتجات متنوعة بجودة وسعر مناسب.</p>
 <a class="btn" href="#/sections">تصفح الأقسام</a>${user?'':' <a class="btn o" href="#/register">إنشاء حساب</a>'}</section>
-<h2>خدماتنا</h2><div class="g">${S.map(s=>`<div class="c"><div class="i">${s.i}</div><h3>${s.t}</h3><p>${s.d}</p></div>`).join('')}</div>${gallery()}${reviews()}${faq()}${contact()}`}
+<h2>خدماتنا</h2><div class="g">${S.filter(s=>!hid('sec:'+s.id)).map(s=>`<div class="c"><div class="i">${s.i}</div><h3>${s.t}</h3><p>${s.d}</p></div>`).join('')}</div>${gallery()}${reviews()}${faq()}${contact()}`}
 
 function gallery(){return GALLERY.length?`<h2>أعمالنا</h2><div class="g">${GALLERY.map(g=>`<div class="c" style="padding:0;overflow:hidden"><img src="${esc(g.img)}" alt="" style="width:100%;height:190px;object-fit:cover"><p style="padding:12px">${esc(g.t)}</p></div>`).join('')}</div>`:''}
 function reviews(){return REVIEWS.length?`<h2>آراء العملاء</h2><div class="g">${REVIEWS.map(r=>`<div class="c"><p>“${esc(r.t)}”</p><h3 style="font-size:16px">— ${esc(r.n)}</h3></div>`).join('')}</div>`:''}
@@ -218,10 +223,11 @@ function contact(){
 }
 
 function sections(){
-  return`<h2>الأقسام</h2><div class="g">${S.map(s=>`<a class="c" href="#/s/${s.id}"><div class="i">${s.i}</div><h3>${s.t}</h3><p>${s.d}</p></a>`).join('')}</div>`}
+  return`<h2>الأقسام</h2><div class="g">${S.filter(s=>!hid('sec:'+s.id)).map(s=>`<a class="c" href="#/s/${s.id}"><div class="i">${s.i}</div><h3>${s.t}</h3><p>${s.d}</p></a>`).join('')}</div>`}
 
 async function section(id){
   const s=S.find(x=>x.id===id);if(!s)return'<p>القسم غير موجود</p>';
+  if(hid('sec:'+id))return'<a class="mu" href="#/sections">← رجوع للأقسام</a><div class="msg">هذا القسم غير متاح حالياً</div>';
   if(id==='cv')return cvPage(s);
   if(id==='net')return netPage(s);
   if(id==='web')return webPage(s);
@@ -248,16 +254,16 @@ async function req(service){
 
 let webPkg=1;
 function webPage(s){
-  webPkg=Math.min(1,WEB_PKGS.length-1);
+  webPkg=fv('web',WEB_PKGS);
   const wk=WEB_WORKS.length?WEB_WORKS.map(x=>`<a class="c" href="${esc(x.url)}" target="_blank" rel="noopener" style="padding:0;overflow:hidden"><img src="${esc(x.img)}" alt="" style="width:100%;height:170px;object-fit:cover"><p style="padding:12px">${esc(x.t)}</p></a>`).join(''):WEB_TEMPLATES.map(x=>`<div class="c" style="text-align:center"><div class="i" style="font-size:46px">${x.i}</div><h3 style="font-size:16px">${x.t}</h3></div>`).join('');
   const ty=WEB_TYPES.map(x=>`<div class="c"><div class="i">${x.i}</div><h3 style="font-size:17px">${x.t}</h3><p>${x.d}</p></div>`).join('');
-  const pk=WEB_PKGS.map((k,i)=>`<div class="c pk wpk${i===webPkg?' sel':''}"><h3>${esc(k.n)}${k.star?' ⭐':''}</h3>${pr('web:'+i,k.p,24)}<ul class="l">${k.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="btn${i===webPkg?'':' o'}" onclick="webSel(${i})">اختر هذه الباقة</button></div>`).join('');
+  const pk=WEB_PKGS.map((k,i)=>hid('web:'+i)?'':`<div class="c pk wpk${i===webPkg?' sel':''}" data-i="${i}"><h3>${esc(k.n)}${k.star?' ⭐':''}</h3>${pr('web:'+i,k.p,24)}<ul class="l">${k.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="btn${i===webPkg?'':' o'}" onclick="webSel(${i})">اختر هذه الباقة</button></div>`).join('');
   const inc=['📱 يعمل بسلاسة على الجوال','⚡ سرعة تحميل عالية','🔍 جاهز للظهور في جوجل (SEO)','💬 زر واتساب وتواصل مباشر','🛠️ لوحة لتعديل المحتوى بنفسك'].map(t=>`<div class="c">${t}</div>`).join('');
   const st=['اتفاق وتحديد المتطلبات (يوم)','تصميم أولي (2 إلى 3 أيام)','تعديلات حسب ملاحظاتك (1 إلى 3 أيام)','تسليم ونشر الموقع (يوم)'].map(t=>`<div class="c"><h3 style="font-size:16px">${t}</h3></div>`).join('');
   const q=[['كم يستغرق تنفيذ الموقع؟','عادةً '+WEB_DAYS+'.'],['هل أقدر أعدّل المحتوى بنفسي؟','نعم، الباقة الاحترافية والمتجر فيهما لوحة لتعديل المحتوى.'],['ماذا لو أردت تغييراً بعد التسليم؟','تقدر تطلبه ضمن باقة الصيانة الشهرية أو كطلب مستقل.'],['هل الاستضافة والدومين مشمولان؟',WEB_HOST],['لا أملك شعاراً أو محتوى، هل أقدر أبدأ؟','نعم، نساعدك في ترتيب المحتوى، وتقدر تكمل لاحقاً.']].map(([a,b])=>`<details class="c" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700">${a}</summary><p style="margin-top:8px">${esc(b)}</p></details>`).join('');
   const op=a=>a.map(x=>`<option>${x}</option>`).join(''),sl='style="width:100%;margin:6px 0 12px"';
   return`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>
-<h2>${WEB_WORKS.length?'أعمالنا':'نماذج مواقع'}</h2><div class="g">${wk}</div>
+<h2>أعمالنا</h2><div class="g">${wk}</div>
 <h2>أنواع المواقع</h2><div class="g">${ty}</div>
 <h2>الباقات</h2><p class="mu">الأسعار تقريبية وتختلف حسب متطلبات موقعك.</p><div class="g" style="margin-top:12px">${pk}</div>
 <h2>ما يشمله كل موقع</h2><div class="g">${inc}</div>
@@ -276,16 +282,16 @@ function webPage(s){
 <label>ملاحظات</label><textarea id="wn" rows="2" maxlength="150"></textarea><textarea id="nt" style="display:none"></textarea>
 <button class="btn" onclick="webSend()">إرسال الطلب</button><div id="st"></div></div>
 <h2>أسئلة شائعة</h2>${q}`}
-function webSel(i){webPkg=i;document.querySelectorAll('.wpk').forEach((e,j)=>{e.classList.toggle('sel',j===i);e.querySelector('button').classList.toggle('o',j!==i)});$('#wsp').textContent=WEB_PKGS[i].n;if(WEB_PKGS[i].n.includes('متجر'))$('#wt').value='متجر إلكتروني';$('#wf').scrollIntoView({behavior:'smooth'})}
+function webSel(i){webPkg=i;document.querySelectorAll('.wpk').forEach(e=>{const on=+e.dataset.i===i;e.classList.toggle('sel',on);e.querySelector('button').classList.toggle('o',!on)});$('#wsp').textContent=WEB_PKGS[i].n;if(WEB_PKGS[i].n.includes('متجر'))$('#wt').value='متجر إلكتروني';$('#wf').scrollIntoView({behavior:'smooth'})}
 function webSend(){const v=i=>$('#'+i).value.trim(),k=WEB_PKGS[webPkg];
   if(!v('wact')){$('#st').innerHTML='<div class="msg">اكتب نشاطك أو مجالك</div>';return}
   $('#nt').value=`النوع: ${v('wt')}\nالباقة: ${k.n} (${ptxt('web:'+webPkg,k.p)})\nالنشاط: ${v('wact')}\nالصفحات: ${v('wp')}\nشعار: ${v('wl')} | محتوى: ${v('wc')}\nأمثلة: ${v('we')}\nالميزانية: ${v('wb')}\nالموعد: ${v('wd')}\nملاحظات: ${v('wn')}`;
   req('تصميم موقع - '+v('wt'))}
 let netPkg=1;
 function netPage(s){
-  netPkg=Math.min(1,NET_PKGS.length-1);
+  netPkg=fv('net',NET_PKGS);
   const ty=NET_TYPES.map(x=>`<div class="c"><div class="i">${x.i}</div><h3 style="font-size:17px">${x.t}</h3><p>${x.d}</p></div>`).join('');
-  const pk=NET_PKGS.map((k,i)=>`<div class="c pk npk${i===netPkg?' sel':''}"><h3>${esc(k.n)}${k.star?' ⭐':''}</h3>${pr('net:'+i,k.p,24)}<ul class="l">${k.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="btn${i===netPkg?'':' o'}" onclick="netSel(${i})">اختر هذه الباقة</button></div>`).join('');
+  const pk=NET_PKGS.map((k,i)=>hid('net:'+i)?'':`<div class="c pk npk${i===netPkg?' sel':''}" data-i="${i}"><h3>${esc(k.n)}${k.star?' ⭐':''}</h3>${pr('net:'+i,k.p,24)}<ul class="l">${k.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="btn${i===netPkg?'':' o'}" onclick="netSel(${i})">اختر هذه الباقة</button></div>`).join('');
   const tr=['📱 مشاهدة الكاميرات من جوالك في أي مكان','🌙 رؤية ليلية واضحة','🧹 تركيب نظيف وتنظيم للكيبلات','🛡️ ضمان: '+NET_WARRANTY].map(t=>`<div class="c">${t}</div>`).join('');
   const gl=NET_GALLERY.length?`<h2>تركيباتنا</h2><div class="g">${NET_GALLERY.map(x=>`<div class="c"><div style="display:flex;gap:8px"><div style="flex:1"><small class="mu">قبل</small><img src="${esc(x.before)}" alt="" style="width:100%;border-radius:8px"></div><div style="flex:1"><small class="mu">بعد</small><img src="${esc(x.after)}" alt="" style="width:100%;border-radius:8px"></div></div><p style="margin-top:8px">${esc(x.t)}</p></div>`).join('')}</div>`:'';
   const wa='https://wa.me/'+CONTACT.whatsapp.replace(/\D/g,'');
@@ -310,7 +316,7 @@ function netPage(s){
 <button class="btn" onclick="netSend()">إرسال الطلب</button><div id="st"></div></div>
 <h2>أسئلة شائعة</h2>${q}`}
 function netGo(){$('#nf').scrollIntoView({behavior:'smooth'})}
-function netSel(i){netPkg=i;document.querySelectorAll('.npk').forEach((e,j)=>{e.classList.toggle('sel',j===i);e.querySelector('button').classList.toggle('o',j!==i)});$('#nsp').textContent=NET_PKGS[i].n;$('#nsv').value='تركيب كاميرات مراقبة';netGo()}
+function netSel(i){netPkg=i;document.querySelectorAll('.npk').forEach(e=>{const on=+e.dataset.i===i;e.classList.toggle('sel',on);e.querySelector('button').classList.toggle('o',!on)});$('#nsp').textContent=NET_PKGS[i].n;$('#nsv').value='تركيب كاميرات مراقبة';netGo()}
 function netInspect(){$('#nsv').value='معاينة مجانية';netGo()}
 function netSend(){const v=i=>$('#'+i).value.trim(),sv=v('nsv'),k=NET_PKGS[netPkg];
   if(!v('nr')){$('#st').innerHTML='<div class="msg">اكتب المنطقة</div>';return}
@@ -318,8 +324,8 @@ function netSend(){const v=i=>$('#'+i).value.trim(),sv=v('nsv'),k=NET_PKGS[netPk
   req('شبكات وكاميرات - '+sv)}
 let cvPkg=1;
 function cvPage(s){
-  cvPkg=Math.min(1,CV_PKGS.length-1);
-  const pk=CV_PKGS.map((k,i)=>`<div class="c pk${i===cvPkg?' sel':''}"><h3>${esc(k.n)}${k.star?' ⭐':''}</h3>${pr('cv:'+i,k.p,26)}<ul class="l">${k.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="btn${i===cvPkg?'':' o'}" onclick="cvSel(${i})">اختر هذه الباقة</button></div>`).join('');
+  cvPkg=fv('cv',CV_PKGS);
+  const pk=CV_PKGS.map((k,i)=>hid('cv:'+i)?'':`<div class="c pk${i===cvPkg?' sel':''}" data-i="${i}"><h3>${esc(k.n)}${k.star?' ⭐':''}</h3>${pr('cv:'+i,k.p,26)}<ul class="l">${k.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="btn${i===cvPkg?'':' o'}" onclick="cvSel(${i})">اختر هذه الباقة</button></div>`).join('');
   const steps=['أرسل بياناتك عبر النموذج','نجهّز لك المسودة الأولى','تراجعها وتطلب التعديلات','تستلم الملف النهائي PDF وWord'].map((t,i)=>`<div class="c"><h3 style="font-size:16px">${t}</h3></div>`).join('');
   const feats=['🤖 متوافقة مع أنظمة فرز الشركات (ATS)','✏️ تعديلات مجانية حسب الباقة','🔒 بياناتك سرية وتُستخدم لإعداد سيرتك فقط','⏱️ التسليم '+CV_DAYS].map(t=>`<div class="c">${t}</div>`).join('');
   const smp=CV_SAMPLES.length?`<h2>نماذج من أعمالنا</h2><div class="g">${CV_SAMPLES.map(x=>`<div class="c"><div style="display:flex;gap:8px"><div style="flex:1"><small class="mu">قبل</small><img src="${esc(x.before)}" alt="" style="width:100%;border-radius:8px"></div><div style="flex:1"><small class="mu">بعد</small><img src="${esc(x.after)}" alt="" style="width:100%;border-radius:8px"></div></div><p style="margin-top:8px">${esc(x.t)}</p></div>`).join('')}</div>`:'';
@@ -335,7 +341,7 @@ function cvPage(s){
 <label>رابط سيرتك الحالية (إن وجدت)</label><input id="cu" maxlength="80"><textarea id="nt" style="display:none"></textarea>
 <button class="btn" onclick="cvSend()">إرسال الطلب</button><div id="st"></div></div>
 <h2>أسئلة شائعة</h2>${q}`}
-function cvSel(i){cvPkg=i;document.querySelectorAll('.pk').forEach((e,j)=>{e.classList.toggle('sel',j===i);e.querySelector('button').classList.toggle('o',j!==i)});$('#cvp').textContent=CV_PKGS[i].n;$('#cvf').scrollIntoView({behavior:'smooth'})}
+function cvSel(i){cvPkg=i;document.querySelectorAll('.pk').forEach(e=>{const on=+e.dataset.i===i;e.classList.toggle('sel',on);e.querySelector('button').classList.toggle('o',!on)});$('#cvp').textContent=CV_PKGS[i].n;$('#cvf').scrollIntoView({behavior:'smooth'})}
 function cvSend(){const v=i=>$('#'+i).value.trim(),k=CV_PKGS[cvPkg];
   if(!v('cj')){$('#st').innerHTML='<div class="msg">اكتب الوظيفة المستهدفة</div>';return}
   $('#nt').value=`الباقة: ${k.n} (${ptxt('cv:'+cvPkg,k.p)})\nالوظيفة: ${v('cj')}\nالخبرات: ${v('ce')}\nالمؤهلات: ${v('cd')}\nالمهارات: ${v('cs')}\nاللغة: ${v('cl')}\nرابط: ${v('cu')}`;
@@ -359,14 +365,19 @@ async function admin(){
   if(!user||user.role!=='admin'){location.hash='#/';return''}
   await loadPrices();const r=await api('adminData');if(!r.ok)return`<div class="msg">${esc(r.msg)}</div>`;
   const T=(k,l)=>`<button class="btn ${tab===k?'':'o'}" onclick="tab='${k}';route()">${l}</button>`;
-  let h=`<h2>لوحة الأدمن</h2><div class="tabs">${T('users','المستخدمون ('+r.users.length+')')}${T('reqs','الطلبات ('+r.requests.length+')')}${T('prods','المنتجات ('+r.products.length+')')}${T('prices','الأسعار والخصومات')}</div><div class="ov">`;
+  let h=`<h2>لوحة الأدمن</h2><div class="tabs">${T('users','المستخدمون ('+r.users.length+')')}${T('reqs','الطلبات ('+r.requests.length+')')}${T('prods','المنتجات ('+r.products.length+')')}${T('prices','الأسعار والخصومات')}${T('hide','الإخفاء والإظهار')}</div><div class="ov">`;
   if(tab==='users')h+=`<table><tr><th>الاسم</th><th>البريد</th><th>الجوال</th><th>الصلاحية</th><th></th></tr>${r.users.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.phone)}</td><td>${u.role==='admin'?'أدمن':'عميل'}</td><td>${u.id===user.id?'':`<button class="btn o" style="padding:5px 10px" onclick="adm('setRole',{id:'${u.id}',role:'${u.role==='admin'?'user':'admin'}'})">${u.role==='admin'?'إلغاء أدمن':'ترقية لأدمن'}</button> <button class="btn d" onclick="adm('deleteUser',{id:'${u.id}'},1)">حذف</button>`}</td></tr>`).join('')}</table>`;
   if(tab==='reqs')h+=`<table><tr><th>التاريخ</th><th>العميل</th><th>الخدمة</th><th>التفاصيل</th><th>الحالة</th><th></th></tr>${r.requests.map(q=>`<tr><td>${esc(q.date.slice(0,10))}</td><td>${esc(q.name)}${q.guest?' <span class="mu">(ضيف)</span>':''}<br><span class="mu">${esc(q.phone)}</span></td><td>${esc(q.service)}</td><td>${esc(q.note)}</td><td><select onchange="adm('setStatus',{id:'${q.id}',status:this.value})">${['جديد','قيد التنفيذ','مكتمل'].map(x=>`<option${(q.status||'جديد')===x?' selected':''}>${x}</option>`).join('')}</select></td><td><button class="btn d" onclick="adm('deleteRequest',{id:'${q.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
-  if(tab==='prods')h+=`<div class="c" style="margin-bottom:16px"><h3>إضافة منتج</h3><input id="pn" placeholder="اسم المنتج"><input id="pp" placeholder="السعر"><input id="pd" placeholder="الوصف"><input id="pi" placeholder="رابط صورة المنتج (اختياري)"><button class="btn" onclick="addP()">إضافة</button></div><table><tr><th>المنتج</th><th>السعر</th><th>خصم %</th><th></th></tr>${r.products.map(p=>`<tr><td>${esc(p.name)}<br><span class="mu">${esc(p.desc)}</span></td><td><input class="pn" value="${esc(p.price)}" style="width:110px"></td><td><input class="po" type="number" min="0" max="90" value="${p.off||0}" style="width:70px"></td><td><button class="btn" onclick="saveProd('${p.id}',this)">حفظ</button> <button class="btn d" onclick="adm('deleteProduct',{id:'${p.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
+  if(tab==='prods')h+=`<div class="c" style="margin-bottom:16px"><h3>إضافة منتج</h3><input id="pn" placeholder="اسم المنتج"><input id="pp" placeholder="السعر"><input id="pd" placeholder="الوصف"><input id="pi" placeholder="رابط صورة المنتج (اختياري)"><button class="btn" onclick="addP()">إضافة</button></div><table><tr><th>المنتج</th><th>السعر</th><th>خصم %</th><th></th></tr>${r.products.map(p=>`<tr><td>${esc(p.name)}<br><span class="mu">${esc(p.desc)}</span></td><td><input class="pn" value="${esc(p.price)}" style="width:110px"></td><td><input class="po" type="number" min="0" max="90" value="${p.off||0}" style="width:70px"></td><td><button class="btn" onclick="saveProd('${p.id}',this)">حفظ</button> <button class="btn o" style="padding:9px 12px" onclick="tg('prod:${p.id}')">${hid('prod:'+p.id)?'إظهار':'إخفاء'}</button> <button class="btn d" onclick="adm('deleteProduct',{id:'${p.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
   if(tab==='prices'){const gl=PR.gl||{off:0,label:''};
     const rows=[['السيرة الذاتية','cv',CV_PKGS],['الشبكات والكاميرات','net',NET_PKGS],['تصميم المواقع','web',WEB_PKGS]].map(([sec,k,A])=>A.map((x,i)=>{const key=k+':'+i,c=calc(key,x.p),o=(PR.prices||{})[key]||{};
       return`<tr><td>${sec}: ${esc(x.n)}</td><td><input class="pn" type="number" step="0.01" value="${c.base}" style="width:90px"></td><td><input class="po" type="number" min="0" max="90" value="${o.off||0}" style="width:70px"></td><td><button class="btn" onclick="savePrice('${key}',this)">حفظ</button> <button class="btn o" style="padding:9px 12px" onclick="resetPrice('${key}')">افتراضي</button></td></tr>`}).join('')).join('');
     h+=`<div class="c" style="margin-bottom:16px"><h3>خصم عام على كل الأسعار</h3><label>نسبة الخصم %</label><input id="go" type="number" min="0" max="90" value="${gl.off||0}"><label>نص العرض (يظهر للعميل)</label><input id="gl" value="${esc(gl.label)}" maxlength="60"><button class="btn" onclick="saveGlobal()">حفظ الخصم العام</button><p class="mu" style="margin-top:8px">الخصم الخاص بباقة معينة يتقدم على الخصم العام. ضع 0 لإلغاء الخصم.</p></div><table><tr><th>الباقة</th><th>السعر (ر.ع)</th><th>خصم %</th><th></th></tr>${rows}</table><p class="mu" style="margin-top:8px">أسعار المنتجات تعدلها من تبويب المنتجات.</p>`}
+  if(tab==='hide'){const row=(l,k)=>`<tr><td>${l}</td><td>${hid(k)?'🚫 مخفي':'✅ ظاهر'}</td><td><button class="btn${hid(k)?'':' o'}" style="padding:7px 14px" onclick="tg('${k}')">${hid(k)?'إظهار':'إخفاء'}</button></td></tr>`;
+    const secs=S.map(x=>row(x.i+' '+x.t,'sec:'+x.id)).join('');
+    const pkgs=[['السيرة','cv',CV_PKGS],['الكاميرات','net',NET_PKGS],['المواقع','web',WEB_PKGS]].map(([n,k,A])=>A.map((x,i)=>row(n+': '+x.n,k+':'+i)).join('')).join('');
+    const blks=Object.entries(HBLK).map(([k,A])=>A.map(t=>row(S.find(x=>x.id===k).t+': '+t,'blk:'+k+':'+t)).join('')).join('');
+    h+=`<h3>الأقسام</h3><table>${secs}</table><h3 style="margin-top:20px">الباقات</h3><table>${pkgs}</table><h3 style="margin-top:20px">أجزاء الصفحات</h3><table>${blks}</table><p class="mu" style="margin-top:8px">المخفي لا يراه العملاء. المنتجات تخفيها من تبويب المنتجات.</p>`}
   return h+'</div>';
 }
 const rowV=b=>{const t=b.closest('tr');return[t.querySelector('.pn').value,parseFloat(t.querySelector('.po').value)||0]};
@@ -374,7 +385,7 @@ async function savePrice(key,b){const[n,off]=rowV(b);await adm('setPrice',{key,n
 async function resetPrice(key){await adm('setPrice',{key,reset:true},1);PR=null;route()}
 async function saveGlobal(){await adm('setGlobal',{off:parseFloat($('#go').value)||0,label:$('#gl').value});PR=null;route()}
 async function saveProd(id,b){const[price,off]=rowV(b);await adm('updateProduct',{id,price,off})}
-async function adm(a,d,c){if(c&&!confirm('متأكد؟'))return;const r=await api(a,d);if(!r.ok)alert(r.msg);route()}
+async function adm(a,d,c){if(c&&!confirm('متأكد؟'))return;const r=await api(a,d);if(!r.ok)alert(r.msg);PR=null;route()}
 function addP(){adm('addProduct',{name:$('#pn').value,price:$('#pp').value,desc:$('#pd').value,img:$('#pi').value})}
 
 async function route(){
@@ -391,7 +402,7 @@ async function route(){
   else if(h[0]==='my')v=await my();
   else if(h[0]==='forgot')v=forgot();
   else v=home();
-  m.innerHTML=(['admin','login','register','forgot','password'].includes(h[0])?'':gbanner())+v;scrollTo(0,0);
+  m.innerHTML=(['admin','login','register','forgot','password'].includes(h[0])?'':gbanner())+v;if(h[0]==='s')applyHide(h[1]);scrollTo(0,0);
 }
 $('#wa').href='https://wa.me/'+CONTACT.whatsapp.replace(/\D/g,'');
 $('#ver').textContent=APP_VER;

@@ -9,7 +9,7 @@
 <script>
 // ===== فحص النسخة وتنظيف الكاش تلقائياً (لا يمس تسجيل الدخول ولا بيانات المستخدم) =====
 // عند كل تحديث غيّر رقم النسخة هنا (v4 ← v5 ...) وسيتحدّث الموقع عند الزوار تلقائياً
-const APP_VER='v4';
+const APP_VER='v5';
 async function checkAndClear(){
   try{
     const res=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});
@@ -96,6 +96,17 @@ const CONTACT={
   snapchat:''
 };
 // معرض الأعمال وآراء العملاء: أضف عناصر وتظهر تلقائياً (الفارغ يختفي)
+// ===== قسم الشبكات والكاميرات: عدّل الأسعار والمناطق والضمان هنا =====
+const NET_WARRANTY='سنة على الأجهزة وستة أشهر على التركيب';
+const NET_AREAS=['مسقط','السيب','بوشر','مطرح'];
+const NET_RESP='نرد خلال ساعة، والمعاينة في نفس اليوم أو اليوم التالي';
+const NET_TYPES=[{i:'📹',t:'كاميرات مراقبة',d:'للبيوت والمحلات والمزارع'},{i:'📶',t:'مقويات واي فاي',d:'تغطية كاملة بدون نقاط ضعف'},{i:'🔌',t:'تمديد شبكات وكيبلات',d:'تمديد منظم للبيوت والمكاتب'},{i:'🔧',t:'صيانة أنظمة موجودة',d:'فحص وإصلاح وتطوير'}];
+const NET_PKGS=[
+ {n:'كاميرتان',p:'من 45 ر.ع',l:['2 كاميرا HD','جهاز تسجيل','تركيب وتهيئة','مشاهدة من الجوال']},
+ {n:'4 كاميرات',p:'من 80 ر.ع',star:1,l:['4 كاميرات HD','جهاز تسجيل وقرص تخزين','تركيب وتنظيم الكيبلات','مشاهدة من الجوال']},
+ {n:'8 كاميرات',p:'من 150 ر.ع',l:['8 كاميرات HD','جهاز تسجيل وقرص تخزين','تركيب وتنظيم الكيبلات','مشاهدة من الجوال']}
+];
+const NET_GALLERY=[ /* {before:'رابط صورة قبل',after:'رابط صورة بعد',t:'وصف'} */ ];
 // ===== قسم السيرة الذاتية: عدّل الباقات والأسعار هنا =====
 const CV_DAYS='خلال 24 إلى 48 ساعة';
 const CV_PKGS=[
@@ -185,6 +196,7 @@ function sections(){
 async function section(id){
   const s=S.find(x=>x.id===id);if(!s)return'<p>القسم غير موجود</p>';
   if(id==='cv')return cvPage(s);
+  if(id==='net')return netPage(s);
   let h=`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>`;
   if(id==='shop'){
     const r=await api('getProducts');
@@ -206,6 +218,41 @@ async function req(service){
   show(r.ok?'تم إرسال طلبك بنجاح ✅ وسنتواصل معك قريباً':esc(r.msg));
 }
 
+let netPkg=1;
+function netPage(s){
+  netPkg=Math.min(1,NET_PKGS.length-1);
+  const ty=NET_TYPES.map(x=>`<div class="c"><div class="i">${x.i}</div><h3 style="font-size:17px">${x.t}</h3><p>${x.d}</p></div>`).join('');
+  const pk=NET_PKGS.map((k,i)=>`<div class="c pk npk${i===netPkg?' sel':''}"><h3>${esc(k.n)}${k.star?' ⭐':''}</h3><p class="price" style="font-size:24px">${esc(k.p)}</p><ul class="l">${k.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="btn${i===netPkg?'':' o'}" onclick="netSel(${i})">اختر هذه الباقة</button></div>`).join('');
+  const tr=['📱 مشاهدة الكاميرات من جوالك في أي مكان','🌙 رؤية ليلية واضحة','🧹 تركيب نظيف وتنظيم للكيبلات','🛡️ ضمان: '+NET_WARRANTY].map(t=>`<div class="c">${t}</div>`).join('');
+  const gl=NET_GALLERY.length?`<h2>تركيباتنا</h2><div class="g">${NET_GALLERY.map(x=>`<div class="c"><div style="display:flex;gap:8px"><div style="flex:1"><small class="mu">قبل</small><img src="${esc(x.before)}" alt="" style="width:100%;border-radius:8px"></div><div style="flex:1"><small class="mu">بعد</small><img src="${esc(x.after)}" alt="" style="width:100%;border-radius:8px"></div></div><p style="margin-top:8px">${esc(x.t)}</p></div>`).join('')}</div>`:'';
+  const wa='https://wa.me/'+CONTACT.whatsapp.replace(/\D/g,'');
+  const q=[['هل أحتاج إنترنت لمشاهدة الكاميرات من الجوال؟','نعم، يلزم إنترنت في المكان للمشاهدة عن بعد، والتسجيل يعمل بدونه.'],['كم يستغرق التركيب؟','غالباً من ساعات قليلة إلى يوم حسب عدد الكاميرات وصعوبة التمديد.'],['ما مدة الضمان؟',NET_WARRANTY+'.'],['هل المعاينة وعرض السعر ملزمان؟','لا، المعاينة وعرض السعر بدون أي التزام.'],['هل تبيعون الأجهزة بدون تركيب؟','نعم، تصفح قسم المنتجات واطلب ما يناسبك.']].map(([a,b])=>`<details class="c" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700">${a}</summary><p style="margin-top:8px">${b}</p></details>`).join('');
+  const op=a=>a.map(x=>`<option>${x}</option>`).join(''),sl='style="width:100%;margin:6px 0 12px"';
+  return`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>
+<div class="c" style="margin-top:16px;text-align:center;border-color:var(--ac2)"><h3>🎁 معاينة مجانية وعرض سعر بدون التزام</h3><p>نزورك ونحدد أنسب حل لمكانك</p><button class="btn" style="margin-top:10px" onclick="netInspect()">احجز معاينة</button></div>
+<h2>خدماتنا</h2><div class="g">${ty}</div>
+<h2>باقات الكاميرات</h2><p class="mu">الأسعار تقريبية وتختلف حسب المكان وطبيعة التمديد.</p><div class="g" style="margin-top:12px">${pk}</div>
+<h2>لماذا نحن</h2><div class="g">${tr}</div>${gl}
+<h2>أجهزة جاهزة للشراء</h2><div class="c"><p>كاميرات ومقويات وملحقات متوفرة للطلب.</p><a class="btn o" style="margin-top:10px" href="#/s/shop">تصفح المنتجات</a></div>
+<h2>مناطق التغطية</h2><div class="c"><p>${NET_AREAS.map(esc).join(' • ')}</p><p class="mu" style="margin:8px 0 12px">${esc(NET_RESP)}</p><a class="btn" href="${wa}" target="_blank" rel="noopener">💬 تواصل واتساب</a></div>
+<h2>اطلب الخدمة</h2><div class="c" id="nf"><p class="mu">الباقة المختارة (للكاميرات): <b id="nsp">${esc(NET_PKGS[netPkg].n)}</b></p>${user?'':guestFields}
+<label>نوع الخدمة</label><select id="nsv" ${sl}>${op(['معاينة مجانية','تركيب كاميرات مراقبة','مقويات واي فاي','تمديد شبكات وكيبلات','صيانة نظام موجود'])}</select>
+<label>نوع المكان</label><select id="npl" ${sl}>${op(['بيت','محل','مكتب','مزرعة','آخر'])}</select>
+<label>عدد الكاميرات أو المساحة</label><input id="nc" maxlength="40">
+<label>المنطقة *</label><input id="nr" maxlength="50">
+<label>مكان التركيب</label><select id="nin" ${sl}>${op(['داخلي','خارجي','داخلي وخارجي'])}</select>
+<label>هل الكيبلات موجودة؟</label><select id="nca" ${sl}>${op(['نعم','لا','لا أعرف'])}</select>
+<label>الوقت المناسب للزيارة</label><input id="nt2" maxlength="50">
+<label>ملاحظات</label><textarea id="nn" rows="2" maxlength="150"></textarea><textarea id="nt" style="display:none"></textarea>
+<button class="btn" onclick="netSend()">إرسال الطلب</button><div id="st"></div></div>
+<h2>أسئلة شائعة</h2>${q}`}
+function netGo(){$('#nf').scrollIntoView({behavior:'smooth'})}
+function netSel(i){netPkg=i;document.querySelectorAll('.npk').forEach((e,j)=>{e.classList.toggle('sel',j===i);e.querySelector('button').classList.toggle('o',j!==i)});$('#nsp').textContent=NET_PKGS[i].n;$('#nsv').value='تركيب كاميرات مراقبة';netGo()}
+function netInspect(){$('#nsv').value='معاينة مجانية';netGo()}
+function netSend(){const v=i=>$('#'+i).value.trim(),sv=v('nsv'),k=NET_PKGS[netPkg];
+  if(!v('nr')){$('#st').innerHTML='<div class="msg">اكتب المنطقة</div>';return}
+  $('#nt').value=`الخدمة: ${sv}${sv.includes('كاميرات')?'\nالباقة: '+k.n+' ('+k.p+')':''}\nالمكان: ${v('npl')} - ${v('nin')}\nالعدد/المساحة: ${v('nc')}\nالمنطقة: ${v('nr')}\nالكيبلات: ${v('nca')}\nالزيارة: ${v('nt2')}\nملاحظات: ${v('nn')}`;
+  req('شبكات وكاميرات - '+sv)}
 let cvPkg=1;
 function cvPage(s){
   cvPkg=Math.min(1,CV_PKGS.length-1);

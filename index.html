@@ -9,7 +9,7 @@
 <script>
 // ===== فحص النسخة وتنظيف الكاش تلقائياً (لا يمس تسجيل الدخول ولا بيانات المستخدم) =====
 // عند كل تحديث غيّر رقم النسخة هنا (v4 ← v5 ...) وسيتحدّث الموقع عند الزوار تلقائياً
-const APP_VER='v5';
+const APP_VER='v6';
 async function checkAndClear(){
   try{
     const res=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});
@@ -96,6 +96,18 @@ const CONTACT={
   snapchat:''
 };
 // معرض الأعمال وآراء العملاء: أضف عناصر وتظهر تلقائياً (الفارغ يختفي)
+// ===== قسم تصميم المواقع: عدّل الأسعار والمدة والاستضافة والدعم هنا =====
+const WEB_DAYS='من 3 إلى 10 أيام حسب نوع الموقع';
+const WEB_HOST='الاستضافة والدومين للسنة الأولى مشمولان في الباقات، ويُجدَّدان سنوياً بتكلفة بسيطة.';
+const WEB_SUPPORT='صيانة وتحديثات شهرية اختيارية تبدأ من 10 ر.ع شهرياً (تعديل محتوى، نسخ احتياطي، متابعة الأعطال).';
+const WEB_WORKS=[ /* {img:'رابط صورة الموقع',url:'رابط الموقع',t:'وصف'} */ ];
+const WEB_TYPES=[{i:'🏢',t:'موقع تعريفي',d:'لشركتك أو نشاطك'},{i:'🛒',t:'متجر إلكتروني',d:'سلة وطلبات ودفع'},{i:'👤',t:'موقع شخصي أو سيرة',d:'يعرّف بك وبأعمالك'},{i:'🚀',t:'صفحة هبوط',d:'لإعلان أو منتج واحد'},{i:'📅',t:'حجوزات ولوحة تحكم',d:'نظام يدير عملك'}];
+const WEB_TEMPLATES=[{i:'🛍️',t:'نموذج متجر'},{i:'🏢',t:'نموذج شركة'},{i:'🍽️',t:'نموذج مطعم'},{i:'👤',t:'نموذج سيرة شخصية'}];
+const WEB_PKGS=[
+ {n:'أساسية',p:'من 60 ر.ع',l:['صفحة واحدة بتصميم عصري','متوافقة مع الجوال','زر واتساب واتصال','نموذج تواصل']},
+ {n:'احترافية',p:'من 150 ر.ع',star:1,l:['حتى 6 صفحات','ظهور في جوجل (SEO)','لوحة لتعديل المحتوى','معرض صور وأعمال']},
+ {n:'متجر إلكتروني',p:'من 300 ر.ع',l:['منتجات وسلة وطلبات','لوحة إدارة المنتجات','تقارير الطلبات','كل مميزات الاحترافية']}
+];
 // ===== قسم الشبكات والكاميرات: عدّل الأسعار والمناطق والضمان هنا =====
 const NET_WARRANTY='سنة على الأجهزة وستة أشهر على التركيب';
 const NET_AREAS=['مسقط','السيب','بوشر','مطرح'];
@@ -197,6 +209,7 @@ async function section(id){
   const s=S.find(x=>x.id===id);if(!s)return'<p>القسم غير موجود</p>';
   if(id==='cv')return cvPage(s);
   if(id==='net')return netPage(s);
+  if(id==='web')return webPage(s);
   let h=`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>`;
   if(id==='shop'){
     const r=await api('getProducts');
@@ -218,6 +231,41 @@ async function req(service){
   show(r.ok?'تم إرسال طلبك بنجاح ✅ وسنتواصل معك قريباً':esc(r.msg));
 }
 
+let webPkg=1;
+function webPage(s){
+  webPkg=Math.min(1,WEB_PKGS.length-1);
+  const wk=WEB_WORKS.length?WEB_WORKS.map(x=>`<a class="c" href="${esc(x.url)}" target="_blank" rel="noopener" style="padding:0;overflow:hidden"><img src="${esc(x.img)}" alt="" style="width:100%;height:170px;object-fit:cover"><p style="padding:12px">${esc(x.t)}</p></a>`).join(''):WEB_TEMPLATES.map(x=>`<div class="c" style="text-align:center"><div class="i" style="font-size:46px">${x.i}</div><h3 style="font-size:16px">${x.t}</h3></div>`).join('');
+  const ty=WEB_TYPES.map(x=>`<div class="c"><div class="i">${x.i}</div><h3 style="font-size:17px">${x.t}</h3><p>${x.d}</p></div>`).join('');
+  const pk=WEB_PKGS.map((k,i)=>`<div class="c pk wpk${i===webPkg?' sel':''}"><h3>${esc(k.n)}${k.star?' ⭐':''}</h3><p class="price" style="font-size:24px">${esc(k.p)}</p><ul class="l">${k.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="btn${i===webPkg?'':' o'}" onclick="webSel(${i})">اختر هذه الباقة</button></div>`).join('');
+  const inc=['📱 يعمل بسلاسة على الجوال','⚡ سرعة تحميل عالية','🔍 جاهز للظهور في جوجل (SEO)','💬 زر واتساب وتواصل مباشر','🛠️ لوحة لتعديل المحتوى بنفسك'].map(t=>`<div class="c">${t}</div>`).join('');
+  const st=['اتفاق وتحديد المتطلبات (يوم)','تصميم أولي (2 إلى 3 أيام)','تعديلات حسب ملاحظاتك (1 إلى 3 أيام)','تسليم ونشر الموقع (يوم)'].map(t=>`<div class="c"><h3 style="font-size:16px">${t}</h3></div>`).join('');
+  const q=[['كم يستغرق تنفيذ الموقع؟','عادةً '+WEB_DAYS+'.'],['هل أقدر أعدّل المحتوى بنفسي؟','نعم، الباقة الاحترافية والمتجر فيهما لوحة لتعديل المحتوى.'],['ماذا لو أردت تغييراً بعد التسليم؟','تقدر تطلبه ضمن باقة الصيانة الشهرية أو كطلب مستقل.'],['هل الاستضافة والدومين مشمولان؟',WEB_HOST],['لا أملك شعاراً أو محتوى، هل أقدر أبدأ؟','نعم، نساعدك في ترتيب المحتوى، وتقدر تكمل لاحقاً.']].map(([a,b])=>`<details class="c" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700">${a}</summary><p style="margin-top:8px">${esc(b)}</p></details>`).join('');
+  const op=a=>a.map(x=>`<option>${x}</option>`).join(''),sl='style="width:100%;margin:6px 0 12px"';
+  return`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>
+<h2>${WEB_WORKS.length?'أعمالنا':'نماذج مواقع'}</h2><div class="g">${wk}</div>
+<h2>أنواع المواقع</h2><div class="g">${ty}</div>
+<h2>الباقات</h2><p class="mu">الأسعار تقريبية وتختلف حسب متطلبات موقعك.</p><div class="g" style="margin-top:12px">${pk}</div>
+<h2>ما يشمله كل موقع</h2><div class="g">${inc}</div>
+<h2>الاستضافة والدومين</h2><div class="c"><p>${esc(WEB_HOST)}</p></div>
+<h2>مراحل العمل</h2><div class="g st4">${st}</div>
+<h2>الدعم بعد التسليم</h2><div class="c"><p>${esc(WEB_SUPPORT)}</p></div>
+<h2>اطلب موقعك</h2><div class="c" id="wf"><p class="mu">الباقة المختارة: <b id="wsp">${esc(WEB_PKGS[webPkg].n)}</b></p>${user?'':guestFields}
+<label>نوع الموقع</label><select id="wt" ${sl}>${op(WEB_TYPES.map(x=>x.t))}</select>
+<label>نشاطك أو مجالك *</label><input id="wact" maxlength="60">
+<label>عدد الصفحات المتوقع</label><select id="wp" ${sl}>${op(['صفحة واحدة','2 إلى 5','6 إلى 10','أكثر من 10','لا أعرف'])}</select>
+<label>هل عندك شعار؟</label><select id="wl" ${sl}>${op(['نعم','لا'])}</select>
+<label>هل المحتوى (نصوص وصور) جاهز؟</label><select id="wc" ${sl}>${op(['نعم','جزئياً','لا'])}</select>
+<label>مواقع تعجبك كمثال (روابط)</label><input id="we" maxlength="100">
+<label>الميزانية التقريبية</label><input id="wb" maxlength="30">
+<label>الموعد المطلوب للتسليم</label><input id="wd" maxlength="40">
+<label>ملاحظات</label><textarea id="wn" rows="2" maxlength="150"></textarea><textarea id="nt" style="display:none"></textarea>
+<button class="btn" onclick="webSend()">إرسال الطلب</button><div id="st"></div></div>
+<h2>أسئلة شائعة</h2>${q}`}
+function webSel(i){webPkg=i;document.querySelectorAll('.wpk').forEach((e,j)=>{e.classList.toggle('sel',j===i);e.querySelector('button').classList.toggle('o',j!==i)});$('#wsp').textContent=WEB_PKGS[i].n;if(WEB_PKGS[i].n.includes('متجر'))$('#wt').value='متجر إلكتروني';$('#wf').scrollIntoView({behavior:'smooth'})}
+function webSend(){const v=i=>$('#'+i).value.trim(),k=WEB_PKGS[webPkg];
+  if(!v('wact')){$('#st').innerHTML='<div class="msg">اكتب نشاطك أو مجالك</div>';return}
+  $('#nt').value=`النوع: ${v('wt')}\nالباقة: ${k.n} (${k.p})\nالنشاط: ${v('wact')}\nالصفحات: ${v('wp')}\nشعار: ${v('wl')} | محتوى: ${v('wc')}\nأمثلة: ${v('we')}\nالميزانية: ${v('wb')}\nالموعد: ${v('wd')}\nملاحظات: ${v('wn')}`;
+  req('تصميم موقع - '+v('wt'))}
 let netPkg=1;
 function netPage(s){
   netPkg=Math.min(1,NET_PKGS.length-1);

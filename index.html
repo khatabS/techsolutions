@@ -9,7 +9,7 @@
 <script>
 // ===== فحص النسخة وتنظيف الكاش تلقائياً (لا يمس تسجيل الدخول ولا بيانات المستخدم) =====
 // عند كل تحديث غيّر رقم النسخة هنا (v4 ← v5 ...) وسيتحدّث الموقع عند الزوار تلقائياً
-const APP_VER='v9';
+const APP_VER='v10';
 async function checkAndClear(){
   try{
     const res=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});
@@ -21,7 +21,7 @@ async function checkAndClear(){
     sessionStorage.setItem(flag,'1');
     if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()))}
     if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}
-    location.replace(location.pathname+'?v='+m[1]+location.hash);
+    const u=new URL(location.href);u.searchParams.set('v',m[1]);location.replace(u.toString());
   }catch(e){}
 }
 checkAndClear();
@@ -84,6 +84,8 @@ details summary{list-style:none}
 <script>
 // ===== الإعدادات: ضع رابط Apps Script هنا =====
 const API='https://script.google.com/macros/s/AKfycbz0uXTQ9vjmOAKq_0UDq8Jx2eqX_zHKRLwaSpRYXvKioonBhKLY3PHzFHTtN6r2uZegXg/exec';
+// رابط Cloudflare Worker للدفع الإلكتروني (اتركه فارغاً لإخفاء زر الدفع الإلكتروني)
+const PAY_API='';
 
 // ===== بيانات التواصل: عدّلها ببياناتك (اترك الفارغ ليختفي) =====
 const CONTACT={
@@ -160,11 +162,17 @@ const dep=()=>(PR&&PR.dep!=null?PR.dep:30);
 const amtOf=(key,def,item)=>{const c=calc(key,def,item);return c.base==null?null:c.fin};
 function cp(t,b){const ok=()=>{b.textContent='تم ✓';setTimeout(()=>b.textContent='نسخ',1500)};
   if(navigator.clipboard)navigator.clipboard.writeText(t).then(ok,ok);else{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(e){}a.remove();ok()}}
+async function wapi(p,b){if(!PAY_API)return{ok:false,msg:'الدفع الإلكتروني غير مفعّل'};try{const r=await fetch(PAY_API+'/'+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});return await r.json()}catch(e){return{ok:false,msg:'تعذر الاتصال بخدمة الدفع'}}}
+async function payOnline(n,b){b.disabled=true;b.textContent='جارٍ تحويلك لصفحة الدفع…';const r=await wapi('checkout',{num:n});if(r.url){location.href=r.url;return}b.disabled=false;b.textContent='💳 ادفع الآن إلكترونياً';alert(r.msg||'تعذر بدء الدفع')}
+async function paidPage(n){const r=await wapi('verify',{num:n});
+  return r.paid?`<div class="box c" style="text-align:center"><h2 style="margin-top:0">✅ تم الدفع بنجاح</h2><p>رقم طلبك ${esc(n)}. سنبدأ التنفيذ ونتواصل معك قريباً.</p><a class="btn" href="#/">الرئيسية</a></div>`
+  :`<div class="box c" style="text-align:center"><h2 style="margin-top:0">⏳ لم نتأكد من الدفع بعد</h2><p>رقم طلبك ${esc(n)}. إذا خُصم المبلغ تواصل معنا واتساب وسنؤكده فوراً.</p><button class="btn" onclick="route()">إعادة الفحص</button></div>`}
+async function checkPay(n){const r=await wapi('verify',{num:n});alert(r.paid?'تم التأكد: مدفوع ✅':'غير مدفوع بعد ('+(r.status||r.msg||'')+')');PR=null;route()}
 async function payBox(num,due,full,isDep){
   const r=await api('getPay'),L=(r.ok&&r.pay)||[];
   const wa='https://wa.me/'+CONTACT.whatsapp.replace(/\D/g,'')+'?text='+encodeURIComponent(`مرحباً، رقم طلبي ${num} وحوّلت ${due} ر.ع. هذا الإيصال:`);
   const rows=L.map(m=>`<div class="c" style="margin:8px 0"><b>${m.type==='phone'?'📱':'🏦'} ${esc(m.name)}</b><div class="mu">${esc(m.holder)}</div><div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><b style="direction:ltr;unicode-bidi:plaintext;font-size:18px;word-break:break-all">${esc(m.num)}</b><button class="btn o" style="padding:5px 12px" data-v="${esc(m.num)}" onclick="cp(this.dataset.v,this)">نسخ</button></div>${m.note?`<div class="mu">${esc(m.note)}</div>`:''}</div>`).join('');
-  $('#st').innerHTML=`<div class="msg"><h3>✅ تم استلام طلبك رقم ${num}</h3><p>المبلغ المطلوب تحويله الآن: <b class="price">${due} ر.ع</b>${isDep?` (عربون ${dep()}% من ${full} ر.ع، والباقي بعد المعاينة أو الاتفاق)`:''}</p>${rows||'<p>تواصل معنا واتساب لمعرفة طرق الدفع.</p>'}<p class="mu">بعد التحويل أرسل صورة الإيصال مع رقم الطلب. لا نبدأ التنفيذ إلا بعد تأكيد وصول المبلغ.</p><a class="btn" href="${wa}" target="_blank" rel="noopener">💬 إرسال الإيصال واتساب</a></div>`;
+  $('#st').innerHTML=`<div class="msg"><h3>✅ تم استلام طلبك رقم ${num}</h3><p>المبلغ المطلوب تحويله الآن: <b class="price">${due} ر.ع</b>${isDep?` (عربون ${dep()}% من ${full} ر.ع، والباقي بعد المعاينة أو الاتفاق)`:''}</p>${PAY_API?`<button class="btn" style="width:100%;margin:6px 0" onclick="payOnline(${num},this)">💳 ادفع الآن إلكترونياً</button><p class="mu">أو حوّل يدوياً:</p>`:''}${rows||'<p>تواصل معنا واتساب لمعرفة طرق الدفع.</p>'}<p class="mu">بعد التحويل أرسل صورة الإيصال مع رقم الطلب. لا نبدأ التنفيذ إلا بعد تأكيد وصول المبلغ.</p><a class="btn" href="${wa}" target="_blank" rel="noopener">💬 إرسال الإيصال واتساب</a></div>`;
   $('#st').scrollIntoView({behavior:'smooth'})}
 const hid=k=>!!(PR&&PR.hid&&PR.hid[k]);
 const fv=(p,A)=>{const d=Math.min(1,A.length-1);if(!hid(p+':'+d))return d;const i=A.findIndex((_,j)=>!hid(p+':'+j));return i<0?d:i};
@@ -244,7 +252,7 @@ async function section(id){
   let h=`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>`;
   if(id==='shop'){
     const r=await api('getProducts');
-    h+=r.ok&&r.products.length?`<div class="g" style="margin-top:16px">${r.products.map(p=>`<div class="c">${p.img?`<img src="${esc(p.img)}" alt="" style="width:100%;height:170px;object-fit:cover;border-radius:10px;margin-bottom:8px">`:''}<h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p>${pr(null,p.price,22,{off:p.off})}<button class="btn" onclick="req('منتج: ${esc(p.name).replace(/'/g,'')}',{full:${amtOf(null,p.price,{off:p.off})}})">اطلب الآن</button></div>`).join('')}</div>`
+    h+=r.ok&&r.products.length?`<div class="g" style="margin-top:16px">${r.products.map(p=>`<div class="c">${p.img?`<img src="${esc(p.img)}" alt="" style="width:100%;height:170px;object-fit:cover;border-radius:10px;margin-bottom:8px">`:''}<h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p>${pr(null,p.price,22,{off:p.off})}<button class="btn" onclick="req('منتج: ${esc(p.name).replace(/'/g,'')}',{full:${amtOf(null,p.price,{off:p.off})},key:'prod:${p.id}'})">اطلب الآن</button></div>`).join('')}</div>`
       :`<div class="msg">${r.ok?'لا توجد منتجات حالياً':esc(r.msg)}</div>`;
     if(!user)h+=`<div class="c" style="margin-top:16px"><h3>بياناتك للطلب</h3>${guestFields}</div>`;
   }else{
@@ -254,7 +262,7 @@ async function section(id){
 }
 async function req(service,pay){
   const n=$('#nt')?$('#nt').value:'',show=t=>($('#st')||document.body.appendChild(Object.assign(document.createElement('div'),{id:'st'}))).innerHTML=`<div class="msg">${t}</div>`;
-  const full=pay&&pay.full>0?pay.full:0,due=full?(pay.dep?Math.round(full*dep()*10)/1000:full):0,x={service,note:n,amt:full,due};
+  const full=pay&&pay.full>0?pay.full:0,due=full?(pay.dep?Math.round(full*dep()*10)/1000:full):0,x={service,note:n,amt:full,due,key:full&&pay.key?pay.key:'',mode:pay&&pay.dep?'dep':'full'};
   let r;
   if(user)r=await api('sendRequest',x);
   else{const nm=($('#gn')||{value:''}).value.trim(),ph=($('#gp')||{value:''}).value.trim();
@@ -299,7 +307,7 @@ function webSel(i){webPkg=i;document.querySelectorAll('.wpk').forEach(e=>{const 
 function webSend(){const v=i=>$('#'+i).value.trim(),k=WEB_PKGS[webPkg];
   if(!v('wact')){$('#st').innerHTML='<div class="msg">اكتب نشاطك أو مجالك</div>';return}
   $('#nt').value=`النوع: ${v('wt')}\nالباقة: ${k.n} (${ptxt('web:'+webPkg,k.p)})\nالنشاط: ${v('wact')}\nالصفحات: ${v('wp')}\nشعار: ${v('wl')} | محتوى: ${v('wc')}\nأمثلة: ${v('we')}\nالميزانية: ${v('wb')}\nالموعد: ${v('wd')}\nملاحظات: ${v('wn')}`;
-  req('تصميم موقع - '+v('wt'),{full:amtOf('web:'+webPkg,k.p),dep:1})}
+  req('تصميم موقع - '+v('wt'),{full:amtOf('web:'+webPkg,k.p),dep:1,key:'web:'+webPkg})}
 let netPkg=1;
 function netPage(s){
   netPkg=fv('net',NET_PKGS);
@@ -334,7 +342,7 @@ function netInspect(){$('#nsv').value='معاينة مجانية';netGo()}
 function netSend(){const v=i=>$('#'+i).value.trim(),sv=v('nsv'),k=NET_PKGS[netPkg];
   if(!v('nr')){$('#st').innerHTML='<div class="msg">اكتب المنطقة</div>';return}
   $('#nt').value=`الخدمة: ${sv}${sv.includes('كاميرات')?'\nالباقة: '+k.n+' ('+ptxt('net:'+netPkg,k.p)+')':''}\nالمكان: ${v('npl')} - ${v('nin')}\nالعدد/المساحة: ${v('nc')}\nالمنطقة: ${v('nr')}\nالكيبلات: ${v('nca')}\nالزيارة: ${v('nt2')}\nملاحظات: ${v('nn')}`;
-  req('شبكات وكاميرات - '+sv,sv.includes('كاميرات')?{full:amtOf('net:'+netPkg,k.p),dep:1}:null)}
+  req('شبكات وكاميرات - '+sv,sv.includes('كاميرات')?{full:amtOf('net:'+netPkg,k.p),dep:1,key:'net:'+netPkg}:null)}
 let cvPkg=1;
 function cvPage(s){
   cvPkg=fv('cv',CV_PKGS);
@@ -358,7 +366,7 @@ function cvSel(i){cvPkg=i;document.querySelectorAll('.pk').forEach(e=>{const on=
 function cvSend(){const v=i=>$('#'+i).value.trim(),k=CV_PKGS[cvPkg];
   if(!v('cj')){$('#st').innerHTML='<div class="msg">اكتب الوظيفة المستهدفة</div>';return}
   $('#nt').value=`الباقة: ${k.n} (${ptxt('cv:'+cvPkg,k.p)})\nالوظيفة: ${v('cj')}\nالخبرات: ${v('ce')}\nالمؤهلات: ${v('cd')}\nالمهارات: ${v('cs')}\nاللغة: ${v('cl')}\nرابط: ${v('cu')}`;
-  req('سيرة ذاتية - '+k.n,{full:amtOf('cv:'+cvPkg,k.p)})}
+  req('سيرة ذاتية - '+k.n,{full:amtOf('cv:'+cvPkg,k.p),key:'cv:'+cvPkg})}
 function authForm(reg){return`<div class="box c"><h2 style="margin-top:0">${reg?'إنشاء حساب':'تسجيل الدخول'}</h2>
 ${reg?'<label>الاسم</label><input id="n"><label>الجوال</label><input id="p" type="tel">':''}
 <label>البريد الإلكتروني</label><input id="e" type="email"><label>كلمة المرور</label><input id="w" type="password"${reg?` oninput="pwHint('ph',this.value)"`:''}>${reg?`<div id="ph" style="margin:-6px 0 12px">${hintHtml('')}</div>`:''}
@@ -380,7 +388,7 @@ async function admin(){
   const T=(k,l)=>`<button class="btn ${tab===k?'':'o'}" onclick="tab='${k}';route()">${l}</button>`;
   let h=`<h2>لوحة الأدمن</h2><div class="tabs">${T('users','المستخدمون ('+r.users.length+')')}${T('reqs','الطلبات ('+r.requests.length+')')}${T('prods','المنتجات ('+r.products.length+')')}${T('prices','الأسعار والخصومات')}${T('hide','الإخفاء والإظهار')}${T('pay','طرق الدفع')}</div><div class="ov">`;
   if(tab==='users')h+=`<table><tr><th>الاسم</th><th>البريد</th><th>الجوال</th><th>الصلاحية</th><th></th></tr>${r.users.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.phone)}</td><td>${u.role==='admin'?'أدمن':'عميل'}</td><td>${u.id===user.id?'':`<button class="btn o" style="padding:5px 10px" onclick="adm('setRole',{id:'${u.id}',role:'${u.role==='admin'?'user':'admin'}'})">${u.role==='admin'?'إلغاء أدمن':'ترقية لأدمن'}</button> <button class="btn d" onclick="adm('deleteUser',{id:'${u.id}'},1)">حذف</button>`}</td></tr>`).join('')}</table>`;
-  if(tab==='reqs')h+=`<table><tr><th>التاريخ</th><th>العميل</th><th>الخدمة</th><th>التفاصيل</th><th>الحالة</th><th></th></tr>${r.requests.map(q=>`<tr><td>${esc(q.date.slice(0,10))}<br><span class="mu">#${q.num||''}</span></td><td>${esc(q.name)}${q.guest?' <span class="mu">(ضيف)</span>':''}<br><span class="mu">${esc(q.phone)}</span></td><td>${esc(q.service)}${q.due?`<br><span class="mu">المطلوب: ${q.due} من ${q.amt} ر.ع</span>`:''}</td><td>${esc(q.note)}</td><td><select onchange="adm('setStatus',{id:'${q.id}',status:this.value})">${['جديد','بانتظار الدفع','مدفوع','قيد التنفيذ','مكتمل'].map(x=>`<option${(q.status||'جديد')===x?' selected':''}>${x}</option>`).join('')}</select></td><td><button class="btn d" onclick="adm('deleteRequest',{id:'${q.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
+  if(tab==='reqs')h+=`<table><tr><th>التاريخ</th><th>العميل</th><th>الخدمة</th><th>التفاصيل</th><th>الحالة</th><th></th></tr>${r.requests.map(q=>`<tr><td>${esc(q.date.slice(0,10))}<br><span class="mu">#${q.num||''}</span></td><td>${esc(q.name)}${q.guest?' <span class="mu">(ضيف)</span>':''}<br><span class="mu">${esc(q.phone)}</span></td><td>${esc(q.service)}${q.due?`<br><span class="mu">المطلوب: ${q.due} من ${q.amt} ر.ع</span>`:''}</td><td>${esc(q.note)}</td><td><select onchange="adm('setStatus',{id:'${q.id}',status:this.value})">${['جديد','بانتظار الدفع','مدفوع','قيد التنفيذ','مكتمل'].map(x=>`<option${(q.status||'جديد')===x?' selected':''}>${x}</option>`).join('')}</select>${q.sid&&q.status==='بانتظار الدفع'?`<br><button class="btn o" style="padding:5px 10px;margin-top:6px" onclick="checkPay(${q.num})">تحقق من الدفع</button>`:''}</td><td><button class="btn d" onclick="adm('deleteRequest',{id:'${q.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
   if(tab==='prods')h+=`<div class="c" style="margin-bottom:16px"><h3>إضافة منتج</h3><input id="pn" placeholder="اسم المنتج"><input id="pp" placeholder="السعر"><input id="pd" placeholder="الوصف"><input id="pi" placeholder="رابط صورة المنتج (اختياري)"><button class="btn" onclick="addP()">إضافة</button></div><table><tr><th>المنتج</th><th>السعر</th><th>خصم %</th><th></th></tr>${r.products.map(p=>`<tr><td>${esc(p.name)}<br><span class="mu">${esc(p.desc)}</span></td><td><input class="pn" value="${esc(p.price)}" style="width:110px"></td><td><input class="po" type="number" min="0" max="90" value="${p.off||0}" style="width:70px"></td><td><button class="btn" onclick="saveProd('${p.id}',this)">حفظ</button> <button class="btn o" style="padding:9px 12px" onclick="tg('prod:${p.id}')">${hid('prod:'+p.id)?'إظهار':'إخفاء'}</button> <button class="btn d" onclick="adm('deleteProduct',{id:'${p.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
   if(tab==='prices'){const gl=PR.gl||{off:0,label:''};
     const rows=[['السيرة الذاتية','cv',CV_PKGS],['الشبكات والكاميرات','net',NET_PKGS],['تصميم المواقع','web',WEB_PKGS]].map(([sec,k,A])=>A.map((x,i)=>{const key=k+':'+i,c=calc(key,x.p),o=(PR.prices||{})[key]||{};
@@ -417,11 +425,14 @@ async function route(){
   else if(h[0]==='register')v=authForm(1);
   else if(h[0]==='admin')v=await admin();
   else if(h[0]==='my')v=await my();
+  else if(h[0]==='paid')v=await paidPage(h[1]);
+  else if(h[0]==='paycancel')v='<div class="box c" style="text-align:center"><h2 style="margin-top:0">تم إلغاء الدفع</h2><p>طلبك محفوظ، وتقدر تدفع لاحقاً بالتحويل اليدوي أو تتواصل معنا واتساب.</p><a class="btn" href="#/">الرئيسية</a></div>';
   else if(h[0]==='forgot')v=forgot();
   else v=home();
   m.innerHTML=(['admin','login','register','forgot','password'].includes(h[0])?'':gbanner())+v;if(h[0]==='s')applyHide(h[1]);scrollTo(0,0);
 }
 $('#wa').href='https://wa.me/'+CONTACT.whatsapp.replace(/\D/g,'');
+(function(){const q=new URLSearchParams(location.search),n=q.get('n');if(n&&q.get('pay'))history.replaceState(null,'',location.pathname+'#/'+(q.get('pay')==='ok'?'paid':'paycancel')+'/'+encodeURIComponent(n))})();
 $('#ver').textContent=APP_VER;
 addEventListener('hashchange',route);route();
 </script>

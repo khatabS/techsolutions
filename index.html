@@ -4,12 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
 <title>حلول تك</title>
+<link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <script>
 // ===== فحص النسخة وتنظيف الكاش تلقائياً (لا يمس تسجيل الدخول ولا بيانات المستخدم) =====
 // عند كل تحديث غيّر رقم النسخة هنا (v4 ← v5 ...) وسيتحدّث الموقع عند الزوار تلقائياً
-const APP_VER='v12';
+const APP_VER='v13';
 async function checkAndClear(){
   try{
     const res=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});
@@ -167,8 +168,15 @@ const S=[
 {id:'shop',i:'🛒',t:'المنتجات',d:'منتجات متنوعة نختارها لك بعناية.',l:[]}
 ];
 const guestFields=`<label>الاسم</label><input id="gn"><label>رقم الجوال</label><input id="gp" type="tel"><input id="hp" tabindex="-1" autocomplete="off" style="position:absolute;width:0;height:0;opacity:0;border:0;padding:0;margin:0;pointer-events:none">`;
-let PR=null;
-async function loadPrices(){const r=await api('getPrices');PR=r.ok?r:{prices:{},gl:{off:0,label:''},hid:{}}}
+const EMPTY={prices:{},gl:{off:0,label:''},hid:{},dep:30,products:[],courses:[],pay:[]};
+let PR=(()=>{try{return{...EMPTY,...JSON.parse(localStorage.getItem('pub'))}}catch(e){return EMPTY}})();
+async function loadPrices(){
+  const r=await api('getPublic');if(!r.ok)return false;
+  const old=JSON.stringify(PR);delete r.ok;PR={...EMPTY,...r};
+  try{localStorage.setItem('pub',JSON.stringify(PR))}catch(e){}
+  return JSON.stringify(PR)!==old}
+const typing=()=>[...document.querySelectorAll('#app input,#app textarea')].some(e=>e.value&&e.id!=='hp');
+function refreshBg(){loadPrices().then(ch=>{if(ch&&!typing()&&!/^#\/(admin|paid)/.test(location.hash))route(true)})}
 function calc(key,def,item){
   def=String(def);const m=def.match(/[\d.]+/);if(!m)return{base:null};
   const pre=def.slice(0,m.index),suf=def.slice(m.index+m[0].length).trim()||'ر.ع';
@@ -186,9 +194,9 @@ async function payOnline(n,b){b.disabled=true;b.textContent='جارٍ تحويل
 async function paidPage(n){const r=await wapi('verify',{num:n});
   return r.paid?`<div class="box c" style="text-align:center"><h2 style="margin-top:0">✅ تم الدفع بنجاح</h2><p>رقم طلبك ${esc(n)}. سنبدأ التنفيذ ونتواصل معك قريباً.</p><a class="btn" href="#/">الرئيسية</a></div>`
   :`<div class="box c" style="text-align:center"><h2 style="margin-top:0">⏳ لم نتأكد من الدفع بعد</h2><p>رقم طلبك ${esc(n)}. إذا خُصم المبلغ تواصل معنا واتساب وسنؤكده فوراً.</p><button class="btn" onclick="route()">إعادة الفحص</button></div>`}
-async function checkPay(n){const r=await wapi('verify',{num:n});alert(r.paid?'تم التأكد: مدفوع ✅':'غير مدفوع بعد ('+(r.status||r.msg||'')+')');PR=null;route()}
+async function checkPay(n){const r=await wapi('verify',{num:n});alert(r.paid?'تم التأكد: مدفوع ✅':'غير مدفوع بعد ('+(r.status||r.msg||'')+')');await loadPrices();route()}
 async function payBox(num,due,full,isDep){
-  const r=await api('getPay'),L=(r.ok&&r.pay)||[];
+  if(!(PR.pay&&PR.pay.length))await loadPrices();const L=PR.pay||[];
   const wa='https://wa.me/'+CONTACT.whatsapp.replace(/\D/g,'')+'?text='+encodeURIComponent(`مرحباً، رقم طلبي ${num} وحوّلت ${due} ر.ع. هذا الإيصال:`);
   const rows=L.map(m=>`<div class="c" style="margin:8px 0"><b>${m.type==='phone'?'📱':'🏦'} ${esc(m.name)}</b><div class="mu">${esc(m.holder)}</div><div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><b style="direction:ltr;unicode-bidi:plaintext;font-size:18px;word-break:break-all">${esc(m.num)}</b><button class="btn o" style="padding:5px 12px" data-v="${esc(m.num)}" onclick="cp(this.dataset.v,this)">نسخ</button></div>${m.note?`<div class="mu">${esc(m.note)}</div>`:''}</div>`).join('');
   $('#st').innerHTML=`<div class="msg"><h3>✅ تم استلام طلبك رقم ${num}</h3><p>المبلغ المطلوب تحويله الآن: <b class="price">${due} ر.ع</b>${isDep?` (عربون ${dep()}% من ${full} ر.ع، والباقي بعد المعاينة أو الاتفاق)`:''}</p>${PAY_API?`<button class="btn" style="width:100%;margin:6px 0" onclick="payOnline(${num},this)">💳 ادفع الآن إلكترونياً</button><p class="mu">أو حوّل يدوياً:</p>`:''}${rows||'<p>تواصل معنا واتساب لمعرفة طرق الدفع.</p>'}<p class="mu">بعد التحويل أرسل صورة الإيصال مع رقم الطلب. لا نبدأ التنفيذ إلا بعد تأكيد وصول المبلغ.</p><a class="btn" href="${wa}" target="_blank" rel="noopener">💬 إرسال الإيصال واتساب</a></div>`;
@@ -207,8 +215,9 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(action,data={}){
   if(API.startsWith('PASTE'))return{ok:false,msg:'الموقع غير مربوط بقاعدة البيانات بعد'};
-  try{const r=await fetch(API,{method:'POST',body:JSON.stringify({action,token:tok,...data})});return await r.json()}
-  catch(e){return{ok:false,msg:'تعذر الاتصال بالخادم'}}
+  const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),25000);
+  try{const r=await fetch(API,{method:'POST',signal:ac.signal,body:JSON.stringify({action,token:tok,...data})});return await r.json()}
+  catch(e){return{ok:false,msg:'تعذر الاتصال بالخادم'}}finally{clearTimeout(tm)}
 }
 function nav(){
   $('#nav').innerHTML=`<a class="brand" href="#/">⚡ حلول تك</a><div class="nv">`+
@@ -272,9 +281,9 @@ async function section(id){
   if(id==='train')return await trainPage(s);
   let h=`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>`;
   if(id==='shop'){
-    const r=await api('getProducts');
+    const r={ok:true,products:PR.products||[]};
     h+=r.ok&&r.products.length?`<div class="g" style="margin-top:16px">${r.products.map(p=>`<div class="c">${p.img?`<img src="${esc(p.img)}" alt="" style="width:100%;height:170px;object-fit:cover;border-radius:10px;margin-bottom:8px">`:''}<h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p>${pr(null,p.price,22,{off:p.off})}<button class="btn" onclick="req('منتج: ${esc(p.name).replace(/'/g,'')}',{full:${amtOf(null,p.price,{off:p.off})},key:'prod:${p.id}'})">اطلب الآن</button></div>`).join('')}</div>`
-      :`<div class="msg">${r.ok?'لا توجد منتجات حالياً':esc(r.msg)}</div>`;
+      :`<div class="msg">${r.ok?(localStorage.getItem('pub')?'لا توجد منتجات حالياً':'جارٍ تحميل المنتجات…'):esc(r.msg)}</div>`;
     if(!user)h+=`<div class="c" style="margin-top:16px"><h3>بياناتك للطلب</h3>${guestFields}</div>`;
   }else{
     h+=`<ul class="l">${s.l.map(x=>`<li>${x}</li>`).join('')}</ul><div class="c"><h3>اطلب الخدمة</h3>${user?'':guestFields}<label>تفاصيل طلبك</label><textarea id="nt" rows="4"></textarea><button class="btn" onclick="req('${s.t}')">إرسال الطلب</button></div>`;
@@ -296,7 +305,7 @@ async function req(service,pay){
 
 let TRC=[];
 async function trainPage(s){
-  const r=await api('getCourses'),today=new Date().toISOString().slice(0,10);
+  const r={ok:true,courses:PR.courses||[]},today=new Date().toISOString().slice(0,10);
   TRC=((r.ok&&r.courses)||[]).filter(c=>c.start>=today).sort((a,b)=>a.start<b.start?-1:1);
   const ln=(l,v)=>v?`<p style="margin-top:6px"><b>${l}:</b> ${esc(v)}</p>`:'';
   const cards=TRC.length?TRC.map(c=>{const left=Math.max(0,c.seats-(c.taken||0)),full=left<=0;
@@ -484,7 +493,7 @@ async function auth(reg){
 let tab='users';
 async function admin(){
   if(!user||user.role!=='admin'){location.hash='#/';return''}
-  await loadPrices();const r=await api('adminData');if(!r.ok)return`<div class="msg">${esc(r.msg)}</div>`;
+  const[,r]=await Promise.all([loadPrices(),api('adminData')]);if(!r.ok)return`<div class="msg">${esc(r.msg)}</div>`;
   const T=(k,l)=>`<button class="btn ${tab===k?'':'o'}" onclick="tab='${k}';route()">${l}</button>`;
   let h=`<h2>لوحة الأدمن</h2><div class="tabs">${T('users','المستخدمون ('+r.users.length+')')}${T('reqs','الطلبات ('+r.requests.length+')')}${T('prods','المنتجات ('+r.products.length+')')}${T('prices','الأسعار والخصومات')}${T('hide','الإخفاء والإظهار')}${T('pay','طرق الدفع')}${T('crs','الدورات')}</div><div class="ov">`;
   if(tab==='users')h+=`<table><tr><th>الاسم</th><th>البريد</th><th>الجوال</th><th>الصلاحية</th><th></th></tr>${r.users.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.phone)}</td><td>${u.role==='admin'?'أدمن':'عميل'}</td><td>${u.id===user.id?'':`<button class="btn o" style="padding:5px 10px" onclick="adm('setRole',{id:'${u.id}',role:'${u.role==='admin'?'user':'admin'}'})">${u.role==='admin'?'إلغاء أدمن':'ترقية لأدمن'}</button> <button class="btn d" onclick="adm('deleteUser',{id:'${u.id}'},1)">حذف</button>`}</td></tr>`).join('')}</table>`;
@@ -509,20 +518,20 @@ async function admin(){
   return h+'</div>';
 }
 const rowV=b=>{const t=b.closest('tr');return[t.querySelector('.pn').value,parseFloat(t.querySelector('.po').value)||0]};
-async function savePrice(key,b){const[n,off]=rowV(b);await adm('setPrice',{key,n:n===''?null:parseFloat(n),off});PR=null;route()}
-async function resetPrice(key){await adm('setPrice',{key,reset:true},1);PR=null;route()}
-async function saveGlobal(){await adm('setGlobal',{off:parseFloat($('#go').value)||0,label:$('#gl').value});PR=null;route()}
+async function savePrice(key,b){const[n,off]=rowV(b);await adm('setPrice',{key,n:n===''?null:parseFloat(n),off})}
+async function resetPrice(key){await adm('setPrice',{key,reset:true},1)}
+async function saveGlobal(){await adm('setGlobal',{off:parseFloat($('#go').value)||0,label:$('#gl').value})}
 async function saveProd(id,b){const[price,off]=rowV(b);await adm('updateProduct',{id,price,off})}
 function addPay(){adm('addPay',{type:$('#yt').value,name:$('#yn').value,holder:$('#yh').value,num:$('#yu').value,note:$('#yo').value})}
 function saveCourse(id,b){const t=b.closest('tr'),g=c=>t.querySelector('.'+c).value;adm('updateCourse',{id,start:g('cs'),price:g('cp'),seats:parseFloat(g('cn'))||0,taken:parseFloat(g('ct'))||0,off:parseFloat(g('co'))||0})}
 function addCourse(){const g=i=>$('#'+i).value.trim();if(!g('cT'))return alert('اكتب اسم الدورة');adm('addCourse',{title:g('cT'),field:g('cF'),start:g('cS'),dur:g('cD'),price:g('cP'),seats:parseFloat(g('cN'))||0,mode:g('cM'),level:g('cL'),goals:g('cG'),topics:$('#cO').value,audience:g('cA'),bring:g('cB'),place:g('cW')})}
-async function adm(a,d,c){if(c&&!confirm('متأكد؟'))return;const r=await api(a,d);if(!r.ok)alert(r.msg);PR=null;route()}
+async function adm(a,d,c){if(c&&!confirm('متأكد؟'))return;const r=await api(a,d);if(!r.ok)alert(r.msg);await loadPrices();route()}
 function addP(){adm('addProduct',{name:$('#pn').value,price:$('#pp').value,desc:$('#pd').value,img:$('#pi').value})}
 
-async function route(){
+async function route(silent){
   nav();const h=(location.hash.slice(2)||'').split('/');let v='';
-  const m=$('#app');m.innerHTML='<p class="mu" style="padding:40px 0">جارٍ التحميل…</p>';
-  if(PR===null)await loadPrices();
+  const m=$('#app');
+  if(!silent&&['admin','my','paid'].includes(h[0]))m.innerHTML='<p class="mu" style="padding:40px 0">جارٍ التحميل…</p>';
   if(user&&user.mustChange)h[0]='password';
   if(h[0]==='sections')v=sections();
   else if(h[0]==='password')v=passPage();
@@ -535,12 +544,14 @@ async function route(){
   else if(h[0]==='paycancel')v='<div class="box c" style="text-align:center"><h2 style="margin-top:0">تم إلغاء الدفع</h2><p>طلبك محفوظ، وتقدر تدفع لاحقاً بالتحويل اليدوي أو تتواصل معنا واتساب.</p><a class="btn" href="#/">الرئيسية</a></div>';
   else if(h[0]==='forgot')v=forgot();
   else v=home();
-  m.innerHTML=(['admin','login','register','forgot','password'].includes(h[0])?'':gbanner())+v;if(h[0]==='s')applyHide(h[1]);scrollTo(0,0);
+  m.innerHTML=(['admin','login','register','forgot','password'].includes(h[0])?'':gbanner())+v;if(h[0]==='s')applyHide(h[1]);if(!silent)scrollTo(0,0);
 }
 $('#wa').href='https://wa.me/'+CONTACT.whatsapp.replace(/\D/g,'');
 (function(){const q=new URLSearchParams(location.search),n=q.get('n');if(n&&q.get('pay'))history.replaceState(null,'',location.pathname+'#/'+(q.get('pay')==='ok'?'paid':'paycancel')+'/'+encodeURIComponent(n))})();
 $('#ver').textContent=APP_VER;
-addEventListener('hashchange',route);route();
+addEventListener('hashchange',()=>route());route();
+refreshBg();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshBg()});
 </script>
 </body>
 </html>

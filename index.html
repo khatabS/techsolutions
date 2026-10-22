@@ -9,7 +9,7 @@
 <script>
 // ===== فحص النسخة وتنظيف الكاش تلقائياً (لا يمس تسجيل الدخول ولا بيانات المستخدم) =====
 // عند كل تحديث غيّر رقم النسخة هنا (v4 ← v5 ...) وسيتحدّث الموقع عند الزوار تلقائياً
-const APP_VER='v11';
+const APP_VER='v12';
 async function checkAndClear(){
   try{
     const res=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});
@@ -99,6 +99,13 @@ const CONTACT={
   snapchat:''
 };
 // معرض الأعمال وآراء العملاء: أضف عناصر وتظهر تلقائياً (الفارغ يختفي)
+// ===== قسم التدريب: الدورات تُدار من لوحة الأدمن (تبويب الدورات). عدّل الباقي هنا =====
+const TRAINER={n:'مدرب حلول تك',b:'خبرة عملية في الدعم الفني وتركيب الشبكات والكاميرات وتصميم المواقع، ونقدّم التدريب بأسلوب تطبيقي مباشر.',tags:['تدريب تطبيقي','مجموعات صغيرة','متابعة بعد الدورة']};
+const TR_FIELDS=[{i:'💻',t:'الحاسب والأوفيس'},{i:'📡',t:'الشبكات والكاميرات'},{i:'🌐',t:'تصميم المواقع'},{i:'📄',t:'السيرة الذاتية ومهارات التوظيف'},{i:'🛠️',t:'أساسيات الدعم الفني'}];
+const TR_FORMATS=[{i:'👥',t:'جماعي',d:'مجموعات صغيرة وسعر أقل للفرد'},{i:'🎯',t:'فردي',d:'تدريب مخصص لك وبوقتك'},{i:'🖥️',t:'عن بعد',d:'تحضر من بيتك مباشرة'},{i:'🏫',t:'حضوري',d:'تدريب عملي في مكان التدريب'}];
+const TR_PRIV=[{t:'تدريب فردي (ساعة)',p:'من 10 ر.ع'},{t:'تدريب فردي (حزمة 5 ساعات)',p:'من 45 ر.ع'}];
+const TR_INCLUDES=['🎓 شهادة حضور','📚 مواد وملفات الدورة','🤝 متابعة بعد الدورة','💬 دعم عبر واتساب أثناء التدريب'];
+const TR_REVIEWS=[ /* {n:'اسم المتدرب',t:'نص الرأي'} */ ];
 // ===== قسم الدعم الفني: عدّل الأسعار والمدد والمناطق هنا =====
 const SUP_RESP='نرد خلال 15 دقيقة على مدار الساعة';
 const SUP_TOOL='AnyDesk';
@@ -188,7 +195,7 @@ async function payBox(num,due,full,isDep){
   $('#st').scrollIntoView({behavior:'smooth'})}
 const hid=k=>!!(PR&&PR.hid&&PR.hid[k]);
 const fv=(p,A)=>{const d=Math.min(1,A.length-1);if(!hid(p+':'+d))return d;const i=A.findIndex((_,j)=>!hid(p+':'+j));return i<0?d:i};
-const HBLK={support:['طلب عاجل','أنواع المشاكل','طريقة الدعم','الأسعار','باقات الصيانة','حلول سريعة بنفسك','كيف يعمل الدعم عن بعد','لماذا نحن','مناطق التغطية','اطلب الدعم','أسئلة شائعة'],cv:['اختر باقتك','كيف نشتغل','لماذا نحن','نماذج من أعمالنا','اطلب سيرتك الآن','أسئلة شائعة'],net:['خدماتنا','باقات الكاميرات','لماذا نحن','تركيباتنا','أجهزة جاهزة للشراء','مناطق التغطية','اطلب الخدمة','أسئلة شائعة'],web:['أعمالنا','أنواع المواقع','الباقات','ما يشمله كل موقع','الاستضافة والدومين','مراحل العمل','الدعم بعد التسليم','اطلب موقعك','أسئلة شائعة']};
+const HBLK={train:['الدورات القادمة','مجالات التدريب','طرق التدريب','أسعار التدريب الفردي','المدرب','ماذا تتضمن الدورة','تدريب الشركات والمجموعات','آراء المتدربين','سجّل الآن','أسئلة شائعة'],support:['طلب عاجل','أنواع المشاكل','طريقة الدعم','الأسعار','باقات الصيانة','حلول سريعة بنفسك','كيف يعمل الدعم عن بعد','لماذا نحن','مناطق التغطية','اطلب الدعم','أسئلة شائعة'],cv:['اختر باقتك','كيف نشتغل','لماذا نحن','نماذج من أعمالنا','اطلب سيرتك الآن','أسئلة شائعة'],net:['خدماتنا','باقات الكاميرات','لماذا نحن','تركيباتنا','أجهزة جاهزة للشراء','مناطق التغطية','اطلب الخدمة','أسئلة شائعة'],web:['أعمالنا','أنواع المواقع','الباقات','ما يشمله كل موقع','الاستضافة والدومين','مراحل العمل','الدعم بعد التسليم','اطلب موقعك','أسئلة شائعة']};
 function applyHide(sec){let off=false;[...$('#app').children].forEach(el=>{if(el.tagName==='H2')off=hid('blk:'+sec+':'+el.textContent.trim());if(off)el.remove()})}
 async function tg(k){await adm('setHidden',{key:k,hidden:!hid(k)})}
 function ptxt(key,def,item){const c=calc(key,def,item);return c.base==null?def:c.pre+c.fin+' '+c.suf}
@@ -262,6 +269,7 @@ async function section(id){
   if(id==='net')return netPage(s);
   if(id==='web')return webPage(s);
   if(id==='support')return supPage(s);
+  if(id==='train')return await trainPage(s);
   let h=`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>`;
   if(id==='shop'){
     const r=await api('getProducts');
@@ -275,7 +283,7 @@ async function section(id){
 }
 async function req(service,pay){
   const n=$('#nt')?$('#nt').value:'',show=t=>($('#st')||document.body.appendChild(Object.assign(document.createElement('div'),{id:'st'}))).innerHTML=`<div class="msg">${t}</div>`;
-  const full=pay&&pay.full>0?pay.full:0,due=full?(pay.dep?Math.round(full*dep()*10)/1000:full):0,x={service,note:n,amt:full,due,key:full&&pay.key?pay.key:'',mode:pay&&pay.dep?'dep':'full'};
+  const full=pay&&pay.full>0?pay.full:0,due=full?(pay.dep?Math.round(full*dep()*10)/1000:full):0,x={service,note:n,amt:full,due,course:pay&&pay.course?pay.course:'',key:full&&pay.key?pay.key:'',mode:pay&&pay.dep?'dep':'full'};
   let r;
   if(user)r=await api('sendRequest',x);
   else{const nm=($('#gn')||{value:''}).value.trim(),ph=($('#gp')||{value:''}).value.trim();
@@ -286,6 +294,47 @@ async function req(service,pay){
   show('تم إرسال طلبك بنجاح ✅'+(r.num?' رقم الطلب: '+r.num:'')+' وسنتواصل معك قريباً');
 }
 
+let TRC=[];
+async function trainPage(s){
+  const r=await api('getCourses'),today=new Date().toISOString().slice(0,10);
+  TRC=((r.ok&&r.courses)||[]).filter(c=>c.start>=today).sort((a,b)=>a.start<b.start?-1:1);
+  const ln=(l,v)=>v?`<p style="margin-top:6px"><b>${l}:</b> ${esc(v)}</p>`:'';
+  const cards=TRC.length?TRC.map(c=>{const left=Math.max(0,c.seats-(c.taken||0)),full=left<=0;
+    return`<div class="c"><h3>${esc(c.title)}</h3><p class="mu">${esc(c.field)}</p><p style="margin-top:6px">📅 تبدأ ${esc(c.start)} • ⏱️ ${esc(c.dur)} • ${esc(c.mode)}</p>${pr(null,c.price,22,{off:c.off})}<p style="margin:8px 0">${full?'<span class="dsc">اكتملت المقاعد</span>':`<b style="color:var(--ac2)">المقاعد المتبقية: ${left} من ${c.seats}</b>`}</p>
+<details><summary style="cursor:pointer;font-weight:700">تفاصيل الدورة</summary>${ln('الأهداف',c.goals)}${c.topics?`<p style="margin-top:6px"><b>المحاور:</b></p><ul class="l">${c.topics.split('\n').filter(Boolean).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}${ln('المستوى',c.level)}${ln('تناسب',c.audience)}${ln('أحضر معك',c.bring)}${ln('المكان',c.place)}</details>
+<button class="btn" style="margin-top:10px${full?';opacity:.5':''}" ${full?'disabled':''} onclick="trSel('${c.id}')">سجّل في الدورة</button></div>`}).join(''):`<div class="c"><p>لا توجد دورات قادمة حالياً. اطلب دورة أو اقترح دورة من النموذج بالأسفل.</p></div>`;
+  const fl=TR_FIELDS.map(x=>`<div class="c" style="text-align:center"><div class="i">${x.i}</div><h3 style="font-size:15px">${x.t}</h3></div>`).join('');
+  const fm=TR_FORMATS.map(x=>`<div class="c"><div class="i">${x.i}</div><h3 style="font-size:17px">${x.t}</h3><p>${x.d}</p></div>`).join('');
+  const pv=TR_PRIV.map((x,i)=>hid('trp:'+i)?'':`<div class="c" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${esc(x.t)}</span>${pr('trp:'+i,x.p,18)}</div>`).join('');
+  const inc=TR_INCLUDES.map(t=>`<div class="c">${esc(t)}</div>`).join('');
+  const rv=TR_REVIEWS.length?`<h2>آراء المتدربين</h2><div class="g">${TR_REVIEWS.map(x=>`<div class="c"><p>“${esc(x.t)}”</p><h3 style="font-size:16px">— ${esc(x.n)}</h3></div>`).join('')}</div>`:'';
+  const q=[['هل تعطون شهادة؟','نعم، شهادة حضور لمن يكمل الدورة.'],['ماذا لو تعذّر حضوري؟','أخبرنا قبل موعد البدء ونبحث معك عن موعد بديل أو دورة قادمة.'],['هل أحتاج خبرة سابقة؟','حسب مستوى كل دورة، وتجد المستوى المطلوب في تفاصيلها.'],['هل أقدر أطلب دورة غير موجودة؟','نعم، اختر "اقتراح دورة" في النموذج، وإذا تكرر الطلب نفتحها.'],['كيف أضمن مقعدي؟','سجّل في الدورة وحوّل الرسوم، ويُحجز مقعدك عند تأكيد الدفع.']].map(([a,b])=>`<details class="c" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700">${a}</summary><p style="margin-top:8px">${b}</p></details>`).join('');
+  const op=a=>a.map(x=>`<option>${x}</option>`).join(''),sl='style="width:100%;margin:6px 0 12px"';
+  const copts=TRC.map(c=>`<option value="${c.id}"${c.seats-(c.taken||0)<=0?' disabled':''}>${esc(c.title)} - ${esc(c.start)}</option>`).join('');
+  return`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>
+<h2>الدورات القادمة</h2><div class="g">${cards}</div>
+<h2>مجالات التدريب</h2><div class="g">${fl}</div>
+<h2>طرق التدريب</h2><div class="g">${fm}</div>
+<h2>أسعار التدريب الفردي</h2><div class="g">${pv}</div>
+<h2>المدرب</h2><div class="c"><h3>${esc(TRAINER.n)}</h3><p style="margin:6px 0">${esc(TRAINER.b)}</p><p>${TRAINER.tags.map(t=>`<span class="dsc" style="background:var(--ac);color:#06101f;margin-left:6px">${esc(t)}</span>`).join('')}</p></div>
+<h2>ماذا تتضمن الدورة</h2><div class="g">${inc}</div>
+<h2>تدريب الشركات والمجموعات</h2><div class="c"><p>برنامج مخصص لفريقك أو مجموعتك بالمكان والوقت المناسبين، والسعر حسب العدد والمحتوى.</p><button class="btn o" style="margin-top:10px" onclick="trCorp()">اطلب عرض سعر</button></div>${rv}
+<h2>سجّل الآن</h2><div class="c" id="tf">${user?'':guestFields}
+<label>نوع الطلب</label><select id="tq" onchange="trType()" ${sl}>${op(['تسجيل في دورة','تدريب فردي','تدريب شركات أو مجموعات','اقتراح دورة'])}</select>
+<div id="tcw"><label>الدورة</label><select id="tc" ${sl}>${copts||'<option value="">لا توجد دورات متاحة</option>'}</select></div>
+<label>مستواك الحالي</label><select id="tl" ${sl}>${op(['مبتدئ','متوسط','متقدم'])}</select>
+<label>طريقة الحضور</label><select id="tm" ${sl}>${op(['حضوري','عن بعد','لا يهم'])}</select>
+<label>ملاحظات أو اقتراحك</label><textarea id="tn" rows="3" maxlength="250"></textarea><textarea id="nt" style="display:none"></textarea>
+<button class="btn" onclick="trSend()">إرسال الطلب</button><div id="st"></div></div>
+<h2>أسئلة شائعة</h2>${q}`}
+function trType(){$('#tcw').style.display=$('#tq').value==='تسجيل في دورة'?'':'none'}
+function trSel(id){$('#tq').value='تسجيل في دورة';trType();$('#tc').value=id;$('#tf').scrollIntoView({behavior:'smooth'})}
+function trCorp(){$('#tq').value='تدريب شركات أو مجموعات';trType();$('#tf').scrollIntoView({behavior:'smooth'})}
+function trSend(){const v=i=>$('#'+i).value.trim(),t=v('tq'),reg=t==='تسجيل في دورة',err=m=>$('#st').innerHTML=`<div class="msg">${m}</div>`;
+  let c=null;if(reg){c=TRC.find(x=>x.id===v('tc'));if(!c)return err('اختر دورة متاحة')}
+  if(t==='اقتراح دورة'&&!v('tn'))return err('اكتب الدورة التي تقترحها');
+  $('#nt').value=`النوع: ${t}${c?'\nالدورة: '+c.title+' ('+c.start+')\nالسعر: '+ptxt(null,c.price,{off:c.off}):''}\nالمستوى: ${v('tl')}\nالحضور: ${v('tm')}\nملاحظات: ${v('tn')}`;
+  req('تدريب - '+(c?c.title:t),c?{full:amtOf(null,c.price,{off:c.off}),course:c.id}:null)}
 let supPlan=0;
 function supPage(s){
   supPlan=fv('sm',SUP_PLANS);
@@ -437,22 +486,26 @@ async function admin(){
   if(!user||user.role!=='admin'){location.hash='#/';return''}
   await loadPrices();const r=await api('adminData');if(!r.ok)return`<div class="msg">${esc(r.msg)}</div>`;
   const T=(k,l)=>`<button class="btn ${tab===k?'':'o'}" onclick="tab='${k}';route()">${l}</button>`;
-  let h=`<h2>لوحة الأدمن</h2><div class="tabs">${T('users','المستخدمون ('+r.users.length+')')}${T('reqs','الطلبات ('+r.requests.length+')')}${T('prods','المنتجات ('+r.products.length+')')}${T('prices','الأسعار والخصومات')}${T('hide','الإخفاء والإظهار')}${T('pay','طرق الدفع')}</div><div class="ov">`;
+  let h=`<h2>لوحة الأدمن</h2><div class="tabs">${T('users','المستخدمون ('+r.users.length+')')}${T('reqs','الطلبات ('+r.requests.length+')')}${T('prods','المنتجات ('+r.products.length+')')}${T('prices','الأسعار والخصومات')}${T('hide','الإخفاء والإظهار')}${T('pay','طرق الدفع')}${T('crs','الدورات')}</div><div class="ov">`;
   if(tab==='users')h+=`<table><tr><th>الاسم</th><th>البريد</th><th>الجوال</th><th>الصلاحية</th><th></th></tr>${r.users.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.phone)}</td><td>${u.role==='admin'?'أدمن':'عميل'}</td><td>${u.id===user.id?'':`<button class="btn o" style="padding:5px 10px" onclick="adm('setRole',{id:'${u.id}',role:'${u.role==='admin'?'user':'admin'}'})">${u.role==='admin'?'إلغاء أدمن':'ترقية لأدمن'}</button> <button class="btn d" onclick="adm('deleteUser',{id:'${u.id}'},1)">حذف</button>`}</td></tr>`).join('')}</table>`;
   if(tab==='reqs')h+=`<table><tr><th>التاريخ</th><th>العميل</th><th>الخدمة</th><th>التفاصيل</th><th>الحالة</th><th></th></tr>${r.requests.map(q=>`<tr><td>${esc(q.date.slice(0,10))}<br><span class="mu">#${q.num||''}</span></td><td>${esc(q.name)}${q.guest?' <span class="mu">(ضيف)</span>':''}<br><span class="mu">${esc(q.phone)}</span></td><td>${esc(q.service)}${q.due?`<br><span class="mu">المطلوب: ${q.due} من ${q.amt} ر.ع</span>`:''}</td><td>${esc(q.note)}</td><td><select onchange="adm('setStatus',{id:'${q.id}',status:this.value})">${['جديد','بانتظار الدفع','مدفوع','قيد التنفيذ','مكتمل'].map(x=>`<option${(q.status||'جديد')===x?' selected':''}>${x}</option>`).join('')}</select>${q.sid&&q.status==='بانتظار الدفع'?`<br><button class="btn o" style="padding:5px 10px;margin-top:6px" onclick="checkPay(${q.num})">تحقق من الدفع</button>`:''}</td><td><button class="btn d" onclick="adm('deleteRequest',{id:'${q.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
   if(tab==='prods')h+=`<div class="c" style="margin-bottom:16px"><h3>إضافة منتج</h3><input id="pn" placeholder="اسم المنتج"><input id="pp" placeholder="السعر"><input id="pd" placeholder="الوصف"><input id="pi" placeholder="رابط صورة المنتج (اختياري)"><button class="btn" onclick="addP()">إضافة</button></div><table><tr><th>المنتج</th><th>السعر</th><th>خصم %</th><th></th></tr>${r.products.map(p=>`<tr><td>${esc(p.name)}<br><span class="mu">${esc(p.desc)}</span></td><td><input class="pn" value="${esc(p.price)}" style="width:110px"></td><td><input class="po" type="number" min="0" max="90" value="${p.off||0}" style="width:70px"></td><td><button class="btn" onclick="saveProd('${p.id}',this)">حفظ</button> <button class="btn o" style="padding:9px 12px" onclick="tg('prod:${p.id}')">${hid('prod:'+p.id)?'إظهار':'إخفاء'}</button> <button class="btn d" onclick="adm('deleteProduct',{id:'${p.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
   if(tab==='prices'){const gl=PR.gl||{off:0,label:''};
-    const rows=[['السيرة الذاتية','cv',CV_PKGS],['الشبكات والكاميرات','net',NET_PKGS],['تصميم المواقع','web',WEB_PKGS],['الدعم الفني: الأسعار','sup',SUP_PRICES],['الدعم الفني: الصيانة','sm',SUP_PLANS]].map(([sec,k,A])=>A.map((x,i)=>{const key=k+':'+i,c=calc(key,x.p),o=(PR.prices||{})[key]||{};
+    const rows=[['السيرة الذاتية','cv',CV_PKGS],['الشبكات والكاميرات','net',NET_PKGS],['تصميم المواقع','web',WEB_PKGS],['الدعم الفني: الأسعار','sup',SUP_PRICES],['الدعم الفني: الصيانة','sm',SUP_PLANS],['التدريب الفردي','trp',TR_PRIV]].map(([sec,k,A])=>A.map((x,i)=>{const key=k+':'+i,c=calc(key,x.p),o=(PR.prices||{})[key]||{};
       return`<tr><td>${sec}: ${esc(x.n||x.t)}</td><td><input class="pn" type="number" step="0.01" value="${c.base}" style="width:90px"></td><td><input class="po" type="number" min="0" max="90" value="${o.off||0}" style="width:70px"></td><td><button class="btn" onclick="savePrice('${key}',this)">حفظ</button> <button class="btn o" style="padding:9px 12px" onclick="resetPrice('${key}')">افتراضي</button></td></tr>`}).join('')).join('');
     h+=`<div class="c" style="margin-bottom:16px"><h3>خصم عام على كل الأسعار</h3><label>نسبة الخصم %</label><input id="go" type="number" min="0" max="90" value="${gl.off||0}"><label>نص العرض (يظهر للعميل)</label><input id="gl" value="${esc(gl.label)}" maxlength="60"><button class="btn" onclick="saveGlobal()">حفظ الخصم العام</button><p class="mu" style="margin-top:8px">الخصم الخاص بباقة معينة يتقدم على الخصم العام. ضع 0 لإلغاء الخصم.</p></div><table><tr><th>الباقة</th><th>السعر (ر.ع)</th><th>خصم %</th><th></th></tr>${rows}</table><p class="mu" style="margin-top:8px">أسعار المنتجات تعدلها من تبويب المنتجات.</p>`}
   if(tab==='hide'){const row=(l,k)=>`<tr><td>${l}</td><td>${hid(k)?'🚫 مخفي':'✅ ظاهر'}</td><td><button class="btn${hid(k)?'':' o'}" style="padding:7px 14px" onclick="tg('${k}')">${hid(k)?'إظهار':'إخفاء'}</button></td></tr>`;
     const secs=S.map(x=>row(x.i+' '+x.t,'sec:'+x.id)).join('');
-    const pkgs=[['السيرة','cv',CV_PKGS],['الكاميرات','net',NET_PKGS],['المواقع','web',WEB_PKGS],['الدعم: الأسعار','sup',SUP_PRICES],['الدعم: الصيانة','sm',SUP_PLANS]].map(([n,k,A])=>A.map((x,i)=>row(n+': '+(x.n||x.t),k+':'+i)).join('')).join('');
+    const pkgs=[['السيرة','cv',CV_PKGS],['الكاميرات','net',NET_PKGS],['المواقع','web',WEB_PKGS],['الدعم: الأسعار','sup',SUP_PRICES],['الدعم: الصيانة','sm',SUP_PLANS],['التدريب: الأسعار','trp',TR_PRIV]].map(([n,k,A])=>A.map((x,i)=>row(n+': '+(x.n||x.t),k+':'+i)).join('')).join('');
     const blks=Object.entries(HBLK).map(([k,A])=>A.map(t=>row(S.find(x=>x.id===k).t+': '+t,'blk:'+k+':'+t)).join('')).join('');
     h+=`<h3>الأقسام</h3><table>${secs}</table><h3 style="margin-top:20px">الباقات</h3><table>${pkgs}</table><h3 style="margin-top:20px">أجزاء الصفحات</h3><table>${blks}</table><p class="mu" style="margin-top:8px">المخفي لا يراه العملاء. المنتجات تخفيها من تبويب المنتجات.</p>`}
   if(tab==='pay'){h+=`<div class="c" style="margin-bottom:16px"><h3>إضافة طريقة دفع</h3><label>النوع</label><select id="yt" style="width:100%;margin:6px 0 12px"><option value="bank">تحويل بنكي</option><option value="phone">تحويل بالهاتف</option></select><input id="yn" placeholder="اسم البنك أو الخدمة"><input id="yh" placeholder="اسم صاحب الحساب"><input id="yu" placeholder="رقم الحساب أو الآيبان أو رقم الهاتف"><input id="yo" placeholder="ملاحظة (اختياري)"><button class="btn" onclick="addPay()">إضافة</button></div>
 <div class="c" style="margin-bottom:16px"><h3>نسبة العربون (الكاميرات والمواقع)</h3><input id="dp" type="number" min="0" max="100" value="${dep()}"><button class="btn" onclick="adm('setDep',{dep:parseFloat($('#dp').value)})">حفظ</button></div>
 <table>${(r.pay||[]).map(m=>`<tr><td>${m.type==='phone'?'📱':'🏦'} ${esc(m.name)}<br><span class="mu">${esc(m.holder)}</span></td><td style="direction:ltr">${esc(m.num)}</td><td><button class="btn o" style="padding:7px 12px" onclick="tg('pay:${m.id}')">${hid('pay:'+m.id)?'إظهار':'إخفاء'}</button> <button class="btn d" onclick="adm('deletePay',{id:'${m.id}'},1)">حذف</button></td></tr>`).join('')}</table>`}
+  if(tab==='crs'){const sl='style="width:100%;margin:6px 0 12px"';
+    h+=`<div class="c" style="margin-bottom:16px"><h3>إضافة دورة</h3><input id="cT" placeholder="اسم الدورة"><input id="cF" placeholder="المجال (مثل: الحاسب)"><label>تاريخ البداية</label><input id="cS" type="date"><input id="cD" placeholder="المدة (مثل: 10 ساعات)"><input id="cP" placeholder="السعر (مثل: 30 ر.ع)"><input id="cN" type="number" min="0" placeholder="عدد المقاعد"><select id="cM" ${sl}><option>حضوري</option><option>عن بعد</option><option>حضوري وعن بعد</option></select><input id="cL" placeholder="المستوى (مبتدئ، متوسط...)"><textarea id="cG" rows="2" placeholder="الأهداف"></textarea><textarea id="cO" rows="3" placeholder="المحاور (كل محور في سطر)"></textarea><input id="cA" placeholder="لمن تناسب"><input id="cB" placeholder="ما يحضره المتدرب"><input id="cW" placeholder="مكان التدريب"><button class="btn" onclick="addCourse()">إضافة الدورة</button> <button class="btn o" onclick="adm('seedCourses',{})">إضافة 3 دورات تجريبية</button></div>
+<p class="mu" style="margin-bottom:8px">تختفي الدورة تلقائياً من الموقع بعد تاريخ بدايتها. حذف طلب تسجيل ملغي يرجع المقعد تلقائياً.</p>
+<div class="ov"><table><tr><th>الدورة</th><th>البداية</th><th>السعر</th><th>المقاعد</th><th>المسجلون</th><th>خصم %</th><th></th></tr>${(r.courses||[]).map(c=>`<tr><td>${esc(c.title)}<br><span class="mu">${esc(c.mode)}</span></td><td><input class="cs" type="date" value="${esc(c.start)}"></td><td><input class="cp" value="${esc(c.price)}" style="width:90px"></td><td><input class="cn" type="number" min="0" value="${c.seats}" style="width:70px"></td><td><input class="ct" type="number" min="0" value="${c.taken||0}" style="width:70px"></td><td><input class="co" type="number" min="0" max="90" value="${c.off||0}" style="width:70px"></td><td><button class="btn" onclick="saveCourse('${c.id}',this)">حفظ</button> <button class="btn o" style="padding:9px 12px" onclick="tg('crs:${c.id}')">${hid('crs:'+c.id)?'إظهار':'إخفاء'}</button> <button class="btn d" onclick="adm('deleteCourse',{id:'${c.id}'},1)">حذف</button></td></tr>`).join('')}</table></div>`}
   return h+'</div>';
 }
 const rowV=b=>{const t=b.closest('tr');return[t.querySelector('.pn').value,parseFloat(t.querySelector('.po').value)||0]};
@@ -461,6 +514,8 @@ async function resetPrice(key){await adm('setPrice',{key,reset:true},1);PR=null;
 async function saveGlobal(){await adm('setGlobal',{off:parseFloat($('#go').value)||0,label:$('#gl').value});PR=null;route()}
 async function saveProd(id,b){const[price,off]=rowV(b);await adm('updateProduct',{id,price,off})}
 function addPay(){adm('addPay',{type:$('#yt').value,name:$('#yn').value,holder:$('#yh').value,num:$('#yu').value,note:$('#yo').value})}
+function saveCourse(id,b){const t=b.closest('tr'),g=c=>t.querySelector('.'+c).value;adm('updateCourse',{id,start:g('cs'),price:g('cp'),seats:parseFloat(g('cn'))||0,taken:parseFloat(g('ct'))||0,off:parseFloat(g('co'))||0})}
+function addCourse(){const g=i=>$('#'+i).value.trim();if(!g('cT'))return alert('اكتب اسم الدورة');adm('addCourse',{title:g('cT'),field:g('cF'),start:g('cS'),dur:g('cD'),price:g('cP'),seats:parseFloat(g('cN'))||0,mode:g('cM'),level:g('cL'),goals:g('cG'),topics:$('#cO').value,audience:g('cA'),bring:g('cB'),place:g('cW')})}
 async function adm(a,d,c){if(c&&!confirm('متأكد؟'))return;const r=await api(a,d);if(!r.ok)alert(r.msg);PR=null;route()}
 function addP(){adm('addProduct',{name:$('#pn').value,price:$('#pp').value,desc:$('#pd').value,img:$('#pi').value})}
 

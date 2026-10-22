@@ -9,7 +9,7 @@
 <script>
 // ===== فحص النسخة وتنظيف الكاش تلقائياً (لا يمس تسجيل الدخول ولا بيانات المستخدم) =====
 // عند كل تحديث غيّر رقم النسخة هنا (v4 ← v5 ...) وسيتحدّث الموقع عند الزوار تلقائياً
-const APP_VER='v10';
+const APP_VER='v11';
 async function checkAndClear(){
   try{
     const res=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});
@@ -85,7 +85,7 @@ details summary{list-style:none}
 // ===== الإعدادات: ضع رابط Apps Script هنا =====
 const API='https://script.google.com/macros/s/AKfycbz0uXTQ9vjmOAKq_0UDq8Jx2eqX_zHKRLwaSpRYXvKioonBhKLY3PHzFHTtN6r2uZegXg/exec';
 // رابط Cloudflare Worker للدفع الإلكتروني (اتركه فارغاً لإخفاء زر الدفع الإلكتروني)
-const PAY_API='https://k2-7aaa.holy-frog-f7a1.workers.dev';
+const PAY_API='';
 
 // ===== بيانات التواصل: عدّلها ببياناتك (اترك الفارغ ليختفي) =====
 const CONTACT={
@@ -99,6 +99,18 @@ const CONTACT={
   snapchat:''
 };
 // معرض الأعمال وآراء العملاء: أضف عناصر وتظهر تلقائياً (الفارغ يختفي)
+// ===== قسم الدعم الفني: عدّل الأسعار والمدد والمناطق هنا =====
+const SUP_RESP='نرد خلال 15 دقيقة على مدار الساعة';
+const SUP_TOOL='AnyDesk';
+const SUP_WARRANTY='ضمان 7 أيام على الإصلاح';
+const SUP_AREAS=['مسقط','السيب','بوشر','مطرح'];
+const SUP_TYPES=[{i:'💻',t:'أعطال الكمبيوتر واللابتوب'},{i:'🪟',t:'تثبيت وصيانة الويندوز'},{i:'🦠',t:'إزالة الفيروسات'},{i:'💾',t:'استرجاع البيانات'},{i:'📱',t:'مشاكل الجوال'},{i:'🖨️',t:'الطابعات'},{i:'📶',t:'الإنترنت والواي فاي'},{i:'📧',t:'البريد والحسابات'}];
+const SUP_PRICES=[{t:'دعم عن بعد (جلسة)',p:'من 3 ر.ع'},{t:'إزالة الفيروسات والتنظيف',p:'من 5 ر.ع'},{t:'تثبيت وتهيئة ويندوز',p:'من 10 ر.ع'},{t:'إعداد طابعة أو شبكة منزلية',p:'من 8 ر.ع'},{t:'استرجاع البيانات',p:'من 15 ر.ع'},{t:'رسوم الزيارة',p:'من 5 ر.ع'}];
+const SUP_PLANS=[
+ {n:'منزلية',p:'من 10 ر.ع / شهر',l:['زيارة فحص شهرية','دعم عن بعد غير محدود','أولوية في الرد']},
+ {n:'محلات ومكاتب',p:'من 25 ر.ع / شهر',star:1,l:['زيارتان شهرياً','دعم عن بعد غير محدود','فحص الشبكة والكاميرات','أولوية قصوى في الرد']}
+];
+const SUP_TIPS=[['الإنترنت بطيء','أعد تشغيل الراوتر (افصله 30 ثانية ثم شغّله)، وقرّب من الراوتر، وافصل الأجهزة التي لا تستخدمها.'],['الجهاز بطيء أو يعلّق','أعد تشغيله، وأغلق البرامج غير الضرورية، وتأكد أن مساحة القرص ليست ممتلئة.'],['الطابعة لا تطبع','تأكد من الورق والحبر، وأعد تشغيلها، وتأكد أنها متصلة بنفس الشبكة أو بالكيبل.'],['لا يوجد صوت','افحص مستوى الصوت وجهاز الإخراج المختار، وجرّب سماعة أخرى.'],['الجوال بطيء أو ممتلئ','احذف الملفات والتطبيقات غير المستخدمة وأعد تشغيله.'],['فقدت ملفات مهمة','أوقف استخدام الجهاز فوراً ولا تحفظ عليه شيئاً جديداً، فكل استخدام يقلل فرصة الاسترجاع، ثم تواصل معنا.']];
 // ===== قسم تصميم المواقع: عدّل الأسعار والمدة والاستضافة والدعم هنا =====
 const WEB_DAYS='من 3 إلى 10 أيام حسب نوع الموقع';
 const WEB_HOST='الاستضافة والدومين للسنة الأولى مشمولان في الباقات، ويُجدَّدان سنوياً بتكلفة بسيطة.';
@@ -176,7 +188,7 @@ async function payBox(num,due,full,isDep){
   $('#st').scrollIntoView({behavior:'smooth'})}
 const hid=k=>!!(PR&&PR.hid&&PR.hid[k]);
 const fv=(p,A)=>{const d=Math.min(1,A.length-1);if(!hid(p+':'+d))return d;const i=A.findIndex((_,j)=>!hid(p+':'+j));return i<0?d:i};
-const HBLK={cv:['اختر باقتك','كيف نشتغل','لماذا نحن','نماذج من أعمالنا','اطلب سيرتك الآن','أسئلة شائعة'],net:['خدماتنا','باقات الكاميرات','لماذا نحن','تركيباتنا','أجهزة جاهزة للشراء','مناطق التغطية','اطلب الخدمة','أسئلة شائعة'],web:['أعمالنا','أنواع المواقع','الباقات','ما يشمله كل موقع','الاستضافة والدومين','مراحل العمل','الدعم بعد التسليم','اطلب موقعك','أسئلة شائعة']};
+const HBLK={support:['طلب عاجل','أنواع المشاكل','طريقة الدعم','الأسعار','باقات الصيانة','حلول سريعة بنفسك','كيف يعمل الدعم عن بعد','لماذا نحن','مناطق التغطية','اطلب الدعم','أسئلة شائعة'],cv:['اختر باقتك','كيف نشتغل','لماذا نحن','نماذج من أعمالنا','اطلب سيرتك الآن','أسئلة شائعة'],net:['خدماتنا','باقات الكاميرات','لماذا نحن','تركيباتنا','أجهزة جاهزة للشراء','مناطق التغطية','اطلب الخدمة','أسئلة شائعة'],web:['أعمالنا','أنواع المواقع','الباقات','ما يشمله كل موقع','الاستضافة والدومين','مراحل العمل','الدعم بعد التسليم','اطلب موقعك','أسئلة شائعة']};
 function applyHide(sec){let off=false;[...$('#app').children].forEach(el=>{if(el.tagName==='H2')off=hid('blk:'+sec+':'+el.textContent.trim());if(off)el.remove()})}
 async function tg(k){await adm('setHidden',{key:k,hidden:!hid(k)})}
 function ptxt(key,def,item){const c=calc(key,def,item);return c.base==null?def:c.pre+c.fin+' '+c.suf}
@@ -249,6 +261,7 @@ async function section(id){
   if(id==='cv')return cvPage(s);
   if(id==='net')return netPage(s);
   if(id==='web')return webPage(s);
+  if(id==='support')return supPage(s);
   let h=`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>`;
   if(id==='shop'){
     const r=await api('getProducts');
@@ -273,6 +286,44 @@ async function req(service,pay){
   show('تم إرسال طلبك بنجاح ✅'+(r.num?' رقم الطلب: '+r.num:'')+' وسنتواصل معك قريباً');
 }
 
+let supPlan=0;
+function supPage(s){
+  supPlan=fv('sm',SUP_PLANS);
+  const dg=CONTACT.whatsapp.replace(/\D/g,''),wa='https://wa.me/'+dg+'?text='+encodeURIComponent('مرحباً، أحتاج دعماً فنياً عاجلاً. المشكلة: ');
+  const ty=SUP_TYPES.map(x=>`<div class="c" style="text-align:center"><div class="i">${x.i}</div><h3 style="font-size:15px">${x.t}</h3></div>`).join('');
+  const md=`<div class="c"><div class="i">🖥️</div><h3>دعم عن بعد (فوري)</h3><p>أسرع وأرخص، ويناسب مشاكل البرامج والإعدادات والفيروسات.</p></div><div class="c"><div class="i">🚗</div><h3>زيارة للموقع</h3><p>للأعطال الفعلية في الأجهزة والشبكات والطابعات، وتُضاف رسوم الزيارة.</p></div>`;
+  const pl=SUP_PRICES.map((x,i)=>hid('sup:'+i)?'':`<div class="c" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>${esc(x.t)}</span>${pr('sup:'+i,x.p,18)}</div>`).join('');
+  const pk=SUP_PLANS.map((k,i)=>hid('sm:'+i)?'':`<div class="c pk spk${i===supPlan?' sel':''}" data-i="${i}"><h3>${esc(k.n)}${k.star?' ⭐':''}</h3>${pr('sm:'+i,k.p,22)}<ul class="l">${k.l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="btn${i===supPlan?'':' o'}" onclick="supSel(${i})">اشترك في هذه الباقة</button></div>`).join('');
+  const tips=SUP_TIPS.map(([a,b])=>`<details class="c" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700">${a}</summary><p style="margin-top:8px">${esc(b)}</p></details>`).join('');
+  const st=['ترسل طلبك أو تتواصل واتساب','نتفق على الوقت ونرسل لك رابط برنامج الاتصال ('+SUP_TOOL+')','تعطينا الإذن وتشاهد شاشتك طوال الجلسة','ننهي الجلسة وتفصل الاتصال بنفسك'].map(t=>`<div class="c"><h3 style="font-size:16px">${esc(t)}</h3></div>`).join('');
+  const tr=['🔍 فحص أولي مجاني','🛡️ '+SUP_WARRANTY,'🔒 بياناتك سرية ولا ندخل جهازك إلا بموافقتك','💰 السعر يُعلن قبل البدء'].map(t=>`<div class="c">${esc(t)}</div>`).join('');
+  const q=[['كم يستغرق الإصلاح؟','أغلب مشاكل البرامج تُحل في جلسة واحدة قصيرة، والأعطال الفعلية تحتاج وقتاً حسب القطعة.'],['هل بياناتي آمنة أثناء الدعم عن بعد؟','نعم، الجلسة بموافقتك وتشاهدها كاملة، وتقدر تقطعها في أي لحظة.'],['ماذا لو لم تُحل المشكلة؟','نخبرك بالنتيجة بصراحة، ولا تدفع مقابل إصلاح لم يتم.'],['هل الفحص الأولي مجاني؟','نعم، نشخّص المشكلة ونعلن لك السعر قبل البدء.'],['هل تأتون لمنزلي أو محلي؟','نعم حسب مناطق التغطية، مع رسوم الزيارة المعلنة.']].map(([a,b])=>`<details class="c" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700">${a}</summary><p style="margin-top:8px">${esc(b)}</p></details>`).join('');
+  const op=a=>a.map(x=>`<option>${x}</option>`).join(''),sl='style="width:100%;margin:6px 0 12px"';
+  return`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>
+<h2>طلب عاجل</h2><div class="c" style="text-align:center;border-color:var(--ac2)"><h3>🚨 جهازك متوقف أو عندك مشكلة طارئة؟</h3><p>${esc(SUP_RESP)}</p><a class="btn" style="margin-top:10px" href="${wa}" target="_blank" rel="noopener">💬 ابدأ الآن عبر واتساب</a></div>
+<h2>أنواع المشاكل</h2><div class="g">${ty}</div>
+<h2>طريقة الدعم</h2><div class="g">${md}</div>
+<h2>الأسعار</h2><p class="mu">أسعار الخدمات المتكررة، والسعر النهائي يُعلن قبل البدء.</p><div class="g" style="margin-top:12px">${pl}</div>
+<h2>باقات الصيانة</h2><p class="mu">اشتراك شهري للبيوت والمحلات.</p><div class="g" style="margin-top:12px">${pk}</div>
+<h2>حلول سريعة بنفسك</h2><div>${tips}</div>
+<h2>كيف يعمل الدعم عن بعد</h2><div class="g st4">${st}</div>
+<h2>لماذا نحن</h2><div class="g">${tr}</div>
+<h2>مناطق التغطية</h2><div class="c"><p>${SUP_AREAS.map(esc).join(' • ')}</p><p class="mu" style="margin-top:8px">${esc(SUP_RESP)}</p></div>
+<h2>اطلب الدعم</h2><div class="c" id="xf"><p class="mu">باقة الصيانة المختارة: <b id="xpl">${esc(SUP_PLANS[supPlan].n)}</b></p>${user?'':guestFields}
+<label>نوع الطلب</label><select id="xq" ${sl}>${op(['مشكلة فنية','اشتراك صيانة دورية','استفسار'])}</select>
+<label>نوع الجهاز</label><select id="xd" ${sl}>${op(['لابتوب','كمبيوتر مكتبي','جوال','طابعة','شبكة وإنترنت','آخر'])}</select>
+<label>وصف المشكلة *</label><textarea id="xp" rows="3" maxlength="250"></textarea>
+<label>متى بدأت المشكلة؟</label><input id="xs" maxlength="40">
+<label>درجة الاستعجال</label><select id="xu" ${sl}>${op(['عاجل الآن','اليوم','خلال أيام'])}</select>
+<label>طريقة الدعم</label><select id="xm" ${sl}>${op(['عن بعد','زيارة للموقع','لا أعرف'])}</select>
+<label>المنطقة (للزيارة)</label><input id="xr" maxlength="50"><textarea id="nt" style="display:none"></textarea>
+<button class="btn" onclick="supSend()">إرسال الطلب</button><div id="st"></div></div>
+<h2>أسئلة شائعة</h2>${q}`}
+function supSel(i){supPlan=i;document.querySelectorAll('.spk').forEach(e=>{const on=+e.dataset.i===i;e.classList.toggle('sel',on);e.querySelector('button').classList.toggle('o',!on)});$('#xpl').textContent=SUP_PLANS[i].n;$('#xq').value='اشتراك صيانة دورية';$('#xf').scrollIntoView({behavior:'smooth'})}
+function supSend(){const v=i=>$('#'+i).value.trim(),pl=SUP_PLANS[supPlan],sb=v('xq')==='اشتراك صيانة دورية';
+  if(!v('xp')){$('#st').innerHTML='<div class="msg">اكتب وصف المشكلة</div>';return}
+  $('#nt').value=`النوع: ${v('xq')}${sb?'\nالباقة: '+pl.n+' ('+ptxt('sm:'+supPlan,pl.p)+')':''}\nالجهاز: ${v('xd')}\nالمشكلة: ${v('xp')}\nبدأت: ${v('xs')}\nالاستعجال: ${v('xu')}\nالطريقة: ${v('xm')}\nالمنطقة: ${v('xr')}`;
+  req('دعم فني - '+v('xq'))}
 let webPkg=1;
 function webPage(s){
   webPkg=fv('web',WEB_PKGS);
@@ -391,12 +442,12 @@ async function admin(){
   if(tab==='reqs')h+=`<table><tr><th>التاريخ</th><th>العميل</th><th>الخدمة</th><th>التفاصيل</th><th>الحالة</th><th></th></tr>${r.requests.map(q=>`<tr><td>${esc(q.date.slice(0,10))}<br><span class="mu">#${q.num||''}</span></td><td>${esc(q.name)}${q.guest?' <span class="mu">(ضيف)</span>':''}<br><span class="mu">${esc(q.phone)}</span></td><td>${esc(q.service)}${q.due?`<br><span class="mu">المطلوب: ${q.due} من ${q.amt} ر.ع</span>`:''}</td><td>${esc(q.note)}</td><td><select onchange="adm('setStatus',{id:'${q.id}',status:this.value})">${['جديد','بانتظار الدفع','مدفوع','قيد التنفيذ','مكتمل'].map(x=>`<option${(q.status||'جديد')===x?' selected':''}>${x}</option>`).join('')}</select>${q.sid&&q.status==='بانتظار الدفع'?`<br><button class="btn o" style="padding:5px 10px;margin-top:6px" onclick="checkPay(${q.num})">تحقق من الدفع</button>`:''}</td><td><button class="btn d" onclick="adm('deleteRequest',{id:'${q.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
   if(tab==='prods')h+=`<div class="c" style="margin-bottom:16px"><h3>إضافة منتج</h3><input id="pn" placeholder="اسم المنتج"><input id="pp" placeholder="السعر"><input id="pd" placeholder="الوصف"><input id="pi" placeholder="رابط صورة المنتج (اختياري)"><button class="btn" onclick="addP()">إضافة</button></div><table><tr><th>المنتج</th><th>السعر</th><th>خصم %</th><th></th></tr>${r.products.map(p=>`<tr><td>${esc(p.name)}<br><span class="mu">${esc(p.desc)}</span></td><td><input class="pn" value="${esc(p.price)}" style="width:110px"></td><td><input class="po" type="number" min="0" max="90" value="${p.off||0}" style="width:70px"></td><td><button class="btn" onclick="saveProd('${p.id}',this)">حفظ</button> <button class="btn o" style="padding:9px 12px" onclick="tg('prod:${p.id}')">${hid('prod:'+p.id)?'إظهار':'إخفاء'}</button> <button class="btn d" onclick="adm('deleteProduct',{id:'${p.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
   if(tab==='prices'){const gl=PR.gl||{off:0,label:''};
-    const rows=[['السيرة الذاتية','cv',CV_PKGS],['الشبكات والكاميرات','net',NET_PKGS],['تصميم المواقع','web',WEB_PKGS]].map(([sec,k,A])=>A.map((x,i)=>{const key=k+':'+i,c=calc(key,x.p),o=(PR.prices||{})[key]||{};
-      return`<tr><td>${sec}: ${esc(x.n)}</td><td><input class="pn" type="number" step="0.01" value="${c.base}" style="width:90px"></td><td><input class="po" type="number" min="0" max="90" value="${o.off||0}" style="width:70px"></td><td><button class="btn" onclick="savePrice('${key}',this)">حفظ</button> <button class="btn o" style="padding:9px 12px" onclick="resetPrice('${key}')">افتراضي</button></td></tr>`}).join('')).join('');
+    const rows=[['السيرة الذاتية','cv',CV_PKGS],['الشبكات والكاميرات','net',NET_PKGS],['تصميم المواقع','web',WEB_PKGS],['الدعم الفني: الأسعار','sup',SUP_PRICES],['الدعم الفني: الصيانة','sm',SUP_PLANS]].map(([sec,k,A])=>A.map((x,i)=>{const key=k+':'+i,c=calc(key,x.p),o=(PR.prices||{})[key]||{};
+      return`<tr><td>${sec}: ${esc(x.n||x.t)}</td><td><input class="pn" type="number" step="0.01" value="${c.base}" style="width:90px"></td><td><input class="po" type="number" min="0" max="90" value="${o.off||0}" style="width:70px"></td><td><button class="btn" onclick="savePrice('${key}',this)">حفظ</button> <button class="btn o" style="padding:9px 12px" onclick="resetPrice('${key}')">افتراضي</button></td></tr>`}).join('')).join('');
     h+=`<div class="c" style="margin-bottom:16px"><h3>خصم عام على كل الأسعار</h3><label>نسبة الخصم %</label><input id="go" type="number" min="0" max="90" value="${gl.off||0}"><label>نص العرض (يظهر للعميل)</label><input id="gl" value="${esc(gl.label)}" maxlength="60"><button class="btn" onclick="saveGlobal()">حفظ الخصم العام</button><p class="mu" style="margin-top:8px">الخصم الخاص بباقة معينة يتقدم على الخصم العام. ضع 0 لإلغاء الخصم.</p></div><table><tr><th>الباقة</th><th>السعر (ر.ع)</th><th>خصم %</th><th></th></tr>${rows}</table><p class="mu" style="margin-top:8px">أسعار المنتجات تعدلها من تبويب المنتجات.</p>`}
   if(tab==='hide'){const row=(l,k)=>`<tr><td>${l}</td><td>${hid(k)?'🚫 مخفي':'✅ ظاهر'}</td><td><button class="btn${hid(k)?'':' o'}" style="padding:7px 14px" onclick="tg('${k}')">${hid(k)?'إظهار':'إخفاء'}</button></td></tr>`;
     const secs=S.map(x=>row(x.i+' '+x.t,'sec:'+x.id)).join('');
-    const pkgs=[['السيرة','cv',CV_PKGS],['الكاميرات','net',NET_PKGS],['المواقع','web',WEB_PKGS]].map(([n,k,A])=>A.map((x,i)=>row(n+': '+x.n,k+':'+i)).join('')).join('');
+    const pkgs=[['السيرة','cv',CV_PKGS],['الكاميرات','net',NET_PKGS],['المواقع','web',WEB_PKGS],['الدعم: الأسعار','sup',SUP_PRICES],['الدعم: الصيانة','sm',SUP_PLANS]].map(([n,k,A])=>A.map((x,i)=>row(n+': '+(x.n||x.t),k+':'+i)).join('')).join('');
     const blks=Object.entries(HBLK).map(([k,A])=>A.map(t=>row(S.find(x=>x.id===k).t+': '+t,'blk:'+k+':'+t)).join('')).join('');
     h+=`<h3>الأقسام</h3><table>${secs}</table><h3 style="margin-top:20px">الباقات</h3><table>${pkgs}</table><h3 style="margin-top:20px">أجزاء الصفحات</h3><table>${blks}</table><p class="mu" style="margin-top:8px">المخفي لا يراه العملاء. المنتجات تخفيها من تبويب المنتجات.</p>`}
   if(tab==='pay'){h+=`<div class="c" style="margin-bottom:16px"><h3>إضافة طريقة دفع</h3><label>النوع</label><select id="yt" style="width:100%;margin:6px 0 12px"><option value="bank">تحويل بنكي</option><option value="phone">تحويل بالهاتف</option></select><input id="yn" placeholder="اسم البنك أو الخدمة"><input id="yh" placeholder="اسم صاحب الحساب"><input id="yu" placeholder="رقم الحساب أو الآيبان أو رقم الهاتف"><input id="yo" placeholder="ملاحظة (اختياري)"><button class="btn" onclick="addPay()">إضافة</button></div>

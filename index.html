@@ -10,7 +10,7 @@
 <script>
 // ===== فحص النسخة وتنظيف الكاش تلقائياً (لا يمس تسجيل الدخول ولا بيانات المستخدم) =====
 // عند كل تحديث غيّر رقم النسخة هنا (v4 ← v5 ...) وسيتحدّث الموقع عند الزوار تلقائياً
-const APP_VER='v14';
+const APP_VER='v16';
 async function checkAndClear(){
   try{
     const res=await fetch(location.pathname+'?_='+Date.now(),{cache:'no-store'});
@@ -80,6 +80,7 @@ details summary{list-style:none}
 .bdg{position:absolute;top:10px;right:10px;background:var(--ac2);color:#06101f;font-weight:800;font-size:12px;padding:3px 10px;border-radius:20px}
 .qty{display:inline-flex;align-items:center;gap:10px}.qty button{width:34px;height:34px;border-radius:8px;border:1px solid var(--bd);background:#0d1527;color:var(--tx);font:inherit;cursor:pointer}
 #toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:#1b2a4a;color:#fff;padding:10px 18px;border-radius:12px;z-index:20;display:none;max-width:90%;text-align:center}
+::placeholder{color:#7d8fb5;opacity:1}
 </style>
 </head>
 <body>
@@ -90,7 +91,7 @@ details summary{list-style:none}
 <footer>© حلول تك — جميع الحقوق محفوظة · <span id="ver"></span></footer>
 <script>
 // ===== الإعدادات: ضع رابط Apps Script هنا =====
-const API='https://script.google.com/macros/s/AKfycbz0uXTQ9vjmOAKq_0UDq8Jx2eqX_zHKRLwaSpRYXvKioonBhKLY3PHzFHTtN6r2uZegXg/exec';
+const API='PASTE_APPS_SCRIPT_URL_HERE';
 // رابط Cloudflare Worker للدفع الإلكتروني (اتركه فارغاً لإخفاء زر الدفع الإلكتروني)
 const PAY_API='';
 
@@ -338,7 +339,7 @@ function storePage(s){
   const zn=(PR.zones||[]).length?(PR.zones).map(z=>`${esc(z.name)} (${z.fee} ر.ع)`).join(' • '):'الرسوم تُحدد عند التواصل';
   const q=SHOP_FAQ.map(([a,b])=>`<details class="c" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700">${a}</summary><p style="margin-top:8px">${b}</p></details>`).join('');
   return`<a class="mu" href="#/sections">← رجوع للأقسام</a><h2>${s.i} ${s.t}</h2><p class="mu">${s.d}</p>
-<div style="margin:14px 0 8px"><input id="sq" placeholder="🔍 ابحث عن منتج..." value="${esc(shopQ)}" oninput="shopQ=this.value;shopFilter()"></div>${chips}<div class="g" id="sg">${shopGrid()}</div>
+${user&&user.role==='admin'?`<div class="c" style="margin:12px 0;border-color:var(--ac2)"><b>⚙️ أنت أدمن:</b> <button class="btn" style="margin:6px 0 0" onclick="tab='prods';location.hash='#/admin'">إدارة المنتجات وإضافة منتج جديد</button></div>`:''}<div style="margin:14px 0 8px"><input id="sq" placeholder="🔍 ابحث عن منتج..." value="${esc(shopQ)}" oninput="shopQ=this.value;shopFilter()"></div>${chips}<div class="g" id="sg">${shopGrid()}</div>
 <h2>التوصيل والاستلام</h2><div class="c"><p>🚚 التوصيل: ${zn}</p><p style="margin-top:6px">🏪 ${esc(SHOP_PICKUP)}</p>${SHOP_COD?'<p style="margin-top:6px">💵 الدفع عند الاستلام متاح</p>':''}</div>
 <h2>سياسة الضمان والاسترجاع</h2><div class="c"><p>🛡️ ${esc(SHOP_WARRANTY)}</p><p style="margin-top:6px">↩️ ${esc(SHOP_RETURN)}</p></div>
 <h2>أسئلة شائعة</h2>${q}`}
@@ -583,7 +584,7 @@ async function admin(){
   if(!user||user.role!=='admin'){location.hash='#/';return''}
   const[,r]=await Promise.all([loadPrices(),api('adminData')]);if(!r.ok)return`<div class="msg">${esc(r.msg)}</div>`;
   const T=(k,l)=>`<button class="btn ${tab===k?'':'o'}" onclick="tab='${k}';route()">${l}</button>`;
-  let h=`<h2>لوحة الأدمن</h2><div class="tabs">${T('users','المستخدمون ('+r.users.length+')')}${T('reqs','الطلبات ('+r.requests.length+')')}${T('prods','المنتجات ('+r.products.length+')')}${T('prices','الأسعار والخصومات')}${T('hide','الإخفاء والإظهار')}${T('pay','طرق الدفع')}${T('crs','الدورات')}${T('zones','التوصيل')}</div><div class="ov">`;
+  let h=`<h2>لوحة الأدمن</h2><p class="mu">لإضافة المنتجات وتعديلها اضغط تبويب <b>المنتجات</b>.</p><div class="tabs">${T('users','المستخدمون ('+r.users.length+')')}${T('reqs','الطلبات ('+r.requests.length+')')}${T('prods','المنتجات ('+r.products.length+')')}${T('prices','الأسعار والخصومات')}${T('hide','الإخفاء والإظهار')}${T('pay','طرق الدفع')}${T('crs','الدورات')}${T('zones','التوصيل')}</div><div class="ov">`;
   if(tab==='users')h+=`<table><tr><th>الاسم</th><th>البريد</th><th>الجوال</th><th>الصلاحية</th><th></th></tr>${r.users.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.phone)}</td><td>${u.role==='admin'?'أدمن':'عميل'}</td><td>${u.id===user.id?'':`<button class="btn o" style="padding:5px 10px" onclick="adm('setRole',{id:'${u.id}',role:'${u.role==='admin'?'user':'admin'}'})">${u.role==='admin'?'إلغاء أدمن':'ترقية لأدمن'}</button> <button class="btn d" onclick="adm('deleteUser',{id:'${u.id}'},1)">حذف</button>`}</td></tr>`).join('')}</table>`;
   if(tab==='reqs')h+=`<table><tr><th>التاريخ</th><th>العميل</th><th>الخدمة</th><th>التفاصيل</th><th>الحالة</th><th></th></tr>${r.requests.map(q=>`<tr><td>${esc(q.date.slice(0,10))}<br><span class="mu">#${q.num||''}</span></td><td>${esc(q.name)}${q.guest?' <span class="mu">(ضيف)</span>':''}<br><span class="mu">${esc(q.phone)}</span></td><td>${esc(q.service)}${q.due?`<br><span class="mu">المطلوب: ${q.due} من ${q.amt} ر.ع</span>`:''}</td><td>${esc(q.note)}</td><td><select onchange="adm('setStatus',{id:'${q.id}',status:this.value})">${['جديد','بانتظار الدفع','مدفوع','قيد التنفيذ','مكتمل'].map(x=>`<option${(q.status||'جديد')===x?' selected':''}>${x}</option>`).join('')}</select>${q.sid&&q.status==='بانتظار الدفع'?`<br><button class="btn o" style="padding:5px 10px;margin-top:6px" onclick="checkPay(${q.num})">تحقق من الدفع</button>`:''}</td><td><button class="btn d" onclick="adm('deleteRequest',{id:'${q.id}'},1)">حذف</button></td></tr>`).join('')}</table>`;
   if(tab==='prods')h+=`<div class="c" id="pn0" style="margin-bottom:16px"><h3>إضافة منتج</h3>${PF({})}<button class="btn" onclick="addP()">إضافة</button></div>${r.products.map(p=>`<details class="c" style="margin-bottom:10px" id="pe${p.id}"><summary style="cursor:pointer"><b>${esc(p.name)}</b> • ${esc(p.price)}${p.stock!=null?' • المخزون: '+p.stock:''}${hid('prod:'+p.id)?' • 🚫 مخفي':''}</summary><div style="margin-top:10px">${PF(p)}<button class="btn" onclick="saveProd('${p.id}')">حفظ</button> <button class="btn o" style="padding:9px 12px" onclick="tg('prod:${p.id}')">${hid('prod:'+p.id)?'إظهار':'إخفاء'}</button> <button class="btn d" onclick="adm('deleteProduct',{id:'${p.id}'},1)">حذف</button></div></details>`).join('')}`;
@@ -615,7 +616,7 @@ function addPay(){adm('addPay',{type:$('#yt').value,name:$('#yn').value,holder:$
 function saveCourse(id,b){const t=b.closest('tr'),g=c=>t.querySelector('.'+c).value;adm('updateCourse',{id,start:g('cs'),price:g('cp'),seats:parseFloat(g('cn'))||0,taken:parseFloat(g('ct'))||0,off:parseFloat(g('co'))||0})}
 function addCourse(){const g=i=>$('#'+i).value.trim();if(!g('cT'))return alert('اكتب اسم الدورة');adm('addCourse',{title:g('cT'),field:g('cF'),start:g('cS'),dur:g('cD'),price:g('cP'),seats:parseFloat(g('cN'))||0,mode:g('cM'),level:g('cL'),goals:g('cG'),topics:$('#cO').value,audience:g('cA'),bring:g('cB'),place:g('cW')})}
 async function adm(a,d,c){if(c&&!confirm('متأكد؟'))return;const r=await api(a,d);if(!r.ok)alert(r.msg);await loadPrices();route()}
-const PF=p=>`<input data-f="name" placeholder="اسم المنتج" value="${esc(p.name)}"><input data-f="price" placeholder="السعر (مثل 15 ر.ع)" value="${esc(p.price)}"><input data-f="cat" placeholder="التصنيف (أي نص، مثل: كاميرات)" value="${esc(p.cat)}"><input data-f="off" type="number" min="0" max="90" placeholder="خصم %" value="${p.off||0}"><input data-f="stock" type="number" min="0" placeholder="الكمية (اتركها فارغة لغير محدود)" value="${p.stock==null?'':p.stock}"><select data-f="badge" style="width:100%;margin:6px 0 12px">${['','جديد','الأكثر مبيعاً','عرض'].map(b=>`<option value="${b}"${p.badge===b?' selected':''}>${b||'بدون شارة'}</option>`).join('')}</select><textarea data-f="imgs" rows="2" placeholder="روابط الصور (رابط في كل سطر)">${esc(imgsOf(p).join('\n'))}</textarea><textarea data-f="specs" rows="3" placeholder="المواصفات (كل سطر: الاسم: القيمة)">${esc(p.specs||'')}</textarea><input data-f="warranty" placeholder="الضمان (اختياري)" value="${esc(p.warranty||'')}"><textarea data-f="desc" rows="2" placeholder="الوصف">${esc(p.desc||'')}</textarea><label style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input data-f="install" type="checkbox" style="width:auto;margin:0"${p.install?' checked':''}> يقترح خدمة التركيب</label>`;
+const PF=p=>`<label>اسم المنتج *</label><input data-f="name" placeholder="مثال: كاميرا مراقبة" value="${esc(p.name)}"><label>السعر (اكتبه برقم، مثل 15 ر.ع)</label><input data-f="price" placeholder="15 ر.ع" value="${esc(p.price)}"><label>التصنيف (أي كلمة تختارها)</label><input data-f="cat" placeholder="مثال: كاميرات" value="${esc(p.cat)}"><label>خصم %</label><input data-f="off" type="number" min="0" max="90" placeholder="0" value="${p.off||0}"><label>الكمية المتوفرة (اتركها فارغة لغير محدود)</label><input data-f="stock" type="number" min="0" placeholder="مثال: 10" value="${p.stock==null?'':p.stock}"><label>الشارة</label><select data-f="badge" style="width:100%;margin:6px 0 12px">${['','جديد','الأكثر مبيعاً','عرض'].map(b=>`<option value="${b}"${p.badge===b?' selected':''}>${b||'بدون شارة'}</option>`).join('')}</select><label>روابط الصور (رابط في كل سطر)</label><textarea data-f="imgs" rows="2" placeholder="https://...">${esc(imgsOf(p).join('\n'))}</textarea><label>المواصفات (كل سطر: الاسم: القيمة)</label><textarea data-f="specs" rows="3" placeholder="الدقة: 2MP">${esc(p.specs||'')}</textarea><label>الضمان (اختياري)</label><input data-f="warranty" placeholder="سنة" value="${esc(p.warranty||'')}"><label>الوصف</label><textarea data-f="desc" rows="2">${esc(p.desc||'')}</textarea><label style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input data-f="install" type="checkbox" style="width:auto;margin:0"${p.install?' checked':''}> يقترح خدمة التركيب</label>`;
 const collect=el=>{const o={};el.querySelectorAll('[data-f]').forEach(i=>o[i.dataset.f]=i.type==='checkbox'?i.checked:i.value.trim());return o};
 function addP(){const o=collect($('#pn0'));if(!o.name)return alert('اكتب اسم المنتج');adm('addProduct',o)}
 
@@ -648,4 +649,3 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshBg(
 </script>
 </body>
 </html>
-
